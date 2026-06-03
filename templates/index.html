@@ -39,7 +39,15 @@
           <div id="statusBar" class="status-bar status-disconnected">
             <span class="status-dot"></span>
             <span id="statusText">Disconnected</span>
+            <span id="modeBadge" class="mode-badge mode-cloud" style="display: none;">CLOUD</span>
           </div>
+        </div>
+
+        <!-- Local-fallback notice (shown only when session is in local mode) -->
+        <div id="modeNotice" class="mode-notice" style="display: none;">
+          <strong>Local fallback mode active.</strong>
+          <span id="modeNoticeReason"></span>
+          Avatar and HD voices are disabled while the cloud Voice Live endpoint is unreachable.
         </div>
 
         <!-- Chat area -->

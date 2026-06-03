@@ -1,0 +1,51 @@
+# Docker Compose — on-prem stack for the hybrid local-fallback path.
+#
+# Brings up the two Azure Speech containers that LocalSessionHandler talks to.
+# Microsoft Foundry Local (the local LLM) is NOT included here — it ships as a
+# native Windows / macOS installer and runs on the host (see
+# docs/hybrid/03-onprem-setup.md). Point the app at it via LOCAL_LLM_ENDPOINT.
+#
+# Required environment variables (export before `docker compose -f docker-compose.local.yml up`):
+#
+#   SPEECH_BILLING       https://<foundry-name>.cognitiveservices.azure.com/
+#   SPEECH_API_KEY       Foundry resource key
+#
+# For DISCONNECTED operation you must:
+#   1. Get Microsoft approval (aka.ms/csdisconnectedcontainers).
+#   2. Run each image once with DownloadLicense=True to fetch the license file.
+#   3. Switch to the disconnected run args (LicenseMount, Mounts:License) — see
+#      https://learn.microsoft.com/azure/ai-services/containers/disconnected-containers
+#
+# Resource recommendations (per Microsoft Learn):
+#   STT  ≈ 4 vCPU / 4 GB RAM
+#   NTTS ≈ 6 vCPU / 12 GB RAM (per voice tag)
+
+services:
+  speech-stt:
+    image: mcr.microsoft.com/azure-cognitive-services/speechservices/speech-to-text:5.1.0-amd64-en-us
+    container_name: ai-tts-avatar-stt
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      - Eula=accept
+      - Billing=${SPEECH_BILLING:?must set SPEECH_BILLING to your Foundry endpoint}
+      - ApiKey=${SPEECH_API_KEY:?must set SPEECH_API_KEY to your Foundry key}
+    mem_limit: 4g
+    cpus: 4.0
+
+  speech-tts:
+    # Default tag pulls en-US Jenny. To use a different voice (e.g. Aria, Guy),
+    # change the tag to match the voice you want and update LOCAL_TTS_VOICE in .env.
+    # Full tag list: https://mcr.microsoft.com/v2/azure-cognitive-services/speechservices/neural-text-to-speech/tags/list
+    image: mcr.microsoft.com/azure-cognitive-services/speechservices/neural-text-to-speech:3.11.0-amd64-en-us-jennyneural
+    container_name: ai-tts-avatar-tts
+    restart: unless-stopped
+    ports:
+      - "5002:5000"
+    environment:
+      - Eula=accept
+      - Billing=${SPEECH_BILLING:?must set SPEECH_BILLING to your Foundry endpoint}
+      - ApiKey=${SPEECH_API_KEY:?must set SPEECH_API_KEY to your Foundry key}
+    mem_limit: 12g
+    cpus: 6.0

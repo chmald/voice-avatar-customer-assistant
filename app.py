@@ -1,7 +1,11 @@
 """AI TTS Avatar — FastAPI backend.
 
-Bridges browser WebSocket ↔ Azure Voice Live SDK via VoiceSessionHandler.
-Supports two modes: avatar (WebRTC video) and voice-only (audio via WebSocket).
+Bridges browser WebSocket ↔ a session handler. Two handlers exist:
+
+  - ``CloudVoiceLiveSessionHandler``  (default) — Azure Voice Live API with
+    optional WebRTC avatar.
+  - ``LocalSessionHandler``           — fully on-prem STT → LLM → TTS pipeline
+    used as a fallback when the cloud endpoint is unreachable.
 
 Authentication: DefaultAzureCredential (Azure CLI / managed identity).
 Required roles: Cognitive Services User + Azure AI User.
@@ -22,7 +26,12 @@ from starlette.responses import Response as StarletteResponse
 
 from azure.identity.aio import DefaultAzureCredential
 
-from voice_handler import VoiceSessionHandler
+from session_handlers import (
+    CloudVoiceLiveSessionHandler,
+    LocalSessionHandler,
+    SessionHandler,
+)
+from connectivity import ConnectivitySupervisor
 from config import settings
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -33,13 +42,42 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Active session tracking ──────────────────────────────────────────────────
-_sessions: Dict[str, VoiceSessionHandler] = {}
+_sessions: Dict[str, SessionHandler] = {}
 _tasks: Dict[str, asyncio.Task] = {}
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
 app = FastAPI(title="AI TTS Avatar")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Connectivity supervisor (created at startup if AZURE_AI_ENDPOINT is set).
+_supervisor: ConnectivitySupervisor | None = None
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    global _supervisor
+    if settings.AZURE_AI_ENDPOINT and settings.ENABLE_LOCAL_FALLBACK:
+        _supervisor = ConnectivitySupervisor(
+            endpoint=settings.AZURE_AI_ENDPOINT,
+            interval_s=settings.FAILOVER_PROBE_INTERVAL_S,
+            timeout_s=settings.FAILOVER_PROBE_TIMEOUT_S,
+            failure_threshold=settings.FAILOVER_FAILURE_THRESHOLD,
+        )
+        await _supervisor.start()
+        logger.info("Connectivity supervisor started for %s", settings.AZURE_AI_ENDPOINT)
+    else:
+        logger.info(
+            "Local fallback disabled (ENABLE_LOCAL_FALLBACK=%s, endpoint=%s)",
+            settings.ENABLE_LOCAL_FALLBACK,
+            bool(settings.AZURE_AI_ENDPOINT),
+        )
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    if _supervisor is not None:
+        await _supervisor.stop()
 
 
 @app.middleware("http")
@@ -128,10 +166,13 @@ async def _route_message(cid: str, msg: dict, ws: WebSocket):
 
 
 async def _start_session(cid: str, config: dict, ws: WebSocket):
-    """Create a VoiceSessionHandler and run it as a background task."""
-    await _cleanup(cid)
+    """Create a session handler and run it as a background task.
 
-    credential = DefaultAzureCredential()
+    Picks the cloud handler by default; falls back to the local handler when
+    ``ENABLE_LOCAL_FALLBACK`` is on AND either ``FORCE_LOCAL_MODE`` is set or
+    the connectivity supervisor reports the cloud endpoint unreachable.
+    """
+    await _cleanup(cid)
 
     async def _send(msg: dict):
         try:
@@ -139,25 +180,79 @@ async def _start_session(cid: str, config: dict, ws: WebSocket):
         except Exception as e:
             logger.error(f"Send to {cid} failed: {e}")
 
-    # BYOM: when enabled, the BYOM deployment name *replaces* the model query param,
-    # and the BYOM profile + (optional) cross-resource override are added as query params.
-    use_byom = settings.ENABLE_BYOM_MODE and bool(settings.VOICE_BYOM_MODEL)
-    if settings.ENABLE_BYOM_MODE and not settings.VOICE_BYOM_MODEL:
-        logger.warning("ENABLE_BYOM_MODE is true but VOICE_BYOM_MODEL is empty — falling back to VOICE_LIVE_MODEL.")
+    # Decide cloud vs local
+    use_local, reason = _decide_local(config)
 
-    handler = VoiceSessionHandler(
-        client_id=cid,
-        endpoint=settings.AZURE_AI_ENDPOINT,
-        model=settings.VOICE_BYOM_MODEL if use_byom else settings.VOICE_LIVE_MODEL,
-        byom_mode=settings.VOICE_BYOM_MODE if use_byom else None,
-        foundry_resource_override=settings.VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE or None,
-        credential=credential,
-        send_message=_send,
-        config=config,
-    )
+    if use_local:
+        missing = settings.validate_local_fallback()
+        if missing:
+            await _send({
+                "type": "session_error",
+                "error": f"local-fallback misconfigured: missing {', '.join(missing)}",
+            })
+            return
+        handler: SessionHandler = LocalSessionHandler(
+            client_id=cid,
+            send_message=_send,
+            config=config,
+            fallback_reason=reason,
+        )
+        logger.info(f"Session {cid} → local (reason={reason})")
+    else:
+        credential = DefaultAzureCredential()
+
+        # BYOM: when enabled, the BYOM deployment name *replaces* the model query param,
+        # and the BYOM profile + (optional) cross-resource override are added as query params.
+        use_byom = settings.ENABLE_BYOM_MODE and bool(settings.VOICE_BYOM_MODEL)
+        if settings.ENABLE_BYOM_MODE and not settings.VOICE_BYOM_MODEL:
+            logger.warning(
+                "ENABLE_BYOM_MODE is true but VOICE_BYOM_MODEL is empty — falling back to VOICE_LIVE_MODEL."
+            )
+
+        handler = CloudVoiceLiveSessionHandler(
+            client_id=cid,
+            endpoint=settings.AZURE_AI_ENDPOINT,
+            model=settings.VOICE_BYOM_MODEL if use_byom else settings.VOICE_LIVE_MODEL,
+            byom_mode=settings.VOICE_BYOM_MODE if use_byom else None,
+            foundry_resource_override=settings.VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE or None,
+            credential=credential,
+            send_message=_send,
+            config=config,
+        )
+        logger.info(f"Session {cid} → cloud")
+
     _sessions[cid] = handler
     _tasks[cid] = asyncio.create_task(handler.start())
     logger.info(f"Session started for {cid}")
+
+
+def _decide_local(config: dict) -> tuple[bool, str | None]:
+    """Return (use_local, reason).
+
+    Priority order:
+      1. Client explicitly requested mode (config["forceMode"] == "local").
+      2. Server FORCE_LOCAL_MODE env var.
+      3. ENABLE_LOCAL_FALLBACK + supervisor says cloud is unreachable.
+      4. Default: cloud.
+    """
+    requested = (config or {}).get("forceMode", "")
+    if requested == "local":
+        if not settings.ENABLE_LOCAL_FALLBACK:
+            logger.warning("Client requested local mode but ENABLE_LOCAL_FALLBACK=false — denied")
+        else:
+            return True, "client-requested"
+
+    if not settings.ENABLE_LOCAL_FALLBACK:
+        return False, None
+
+    if settings.FORCE_LOCAL_MODE:
+        return True, "force-local-env"
+
+    if _supervisor is not None and not _supervisor.is_cloud_reachable():
+        last_err = _supervisor.status().get("lastError") or "unknown"
+        return True, f"cloud-unreachable: {last_err}"
+
+    return False, None
 
 
 async def _cleanup(cid: str):
@@ -194,6 +289,25 @@ async def list_avatars():
 async def health():
     missing = settings.validate()
     return {"status": "ok" if not missing else "misconfigured", "missing_keys": missing}
+
+
+# ── Hybrid supervisor status ─────────────────────────────────────────────────
+@app.get("/api/hybrid/status")
+async def hybrid_status():
+    """Expose the connectivity supervisor state + local-fallback config."""
+    return {
+        "enableLocalFallback": settings.ENABLE_LOCAL_FALLBACK,
+        "forceLocalMode": settings.FORCE_LOCAL_MODE,
+        "supervisor": _supervisor.status() if _supervisor is not None else None,
+        "localStack": {
+            "stt": settings.LOCAL_STT_ENDPOINT,
+            "tts": settings.LOCAL_TTS_ENDPOINT,
+            "llm": settings.LOCAL_LLM_ENDPOINT,
+            "voice": settings.LOCAL_TTS_VOICE,
+            "model": settings.LOCAL_LLM_MODEL,
+        },
+        "missingLocalConfig": settings.validate_local_fallback(),
+    }
 
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────

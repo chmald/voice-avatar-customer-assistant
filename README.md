@@ -14,6 +14,7 @@ Real-time AI voice assistant with an optional lifelike avatar, powered by [Azure
 - **Multiple voices** — Azure standard + HD (Dragon) voices
 - **Proactive greeting** — The assistant speaks first when a session starts
 - **BYOM (Bring Your Own Model)** — Point at a custom Foundry deployment (Azure OpenAI realtime / chat completion / Anthropic Claude)
+- **Hybrid local fallback (preview)** — When the cloud is unreachable, sessions automatically continue on-prem against Speech containers + Foundry Local. See [`docs/hybrid/`](./docs/hybrid/).
 - **Optional weather tool** — Function-calling demo using browser geolocation
 - **DefaultAzureCredential** — Keyless auth via Azure CLI or managed identity
 
@@ -27,13 +28,18 @@ Browser ←─── WebRTC video/audio ───── Azure Avatar Service
 
 | File | Purpose |
 |---|---|
-| `app.py` | FastAPI server, WebSocket message router, session management |
-| `voice_handler.py` | `VoiceSessionHandler` — Voice Live SDK session, event relay |
+| `app.py` | FastAPI server, WebSocket message router, session management, hybrid routing |
+| `voice_handler.py` | Back-compat shim — re-exports `CloudVoiceLiveSessionHandler` as `VoiceSessionHandler` |
+| `session_handlers/` | `SessionHandler` protocol + cloud and local implementations |
+| `local_clients/` | Async clients for the on-prem Speech containers and Foundry Local |
+| `connectivity.py` | Background supervisor that probes the cloud Voice Live endpoint |
 | `config.py` | Settings from environment variables |
-| `static/js/app.js` | Browser client — WebRTC, mic capture, audio playback, UI |
+| `static/js/app.js` | Browser client — WebRTC, mic capture, audio playback, UI, mode badge |
 | `static/js/audio-processor.js` | AudioWorklet for 24 kHz PCM16 mic capture |
 | `templates/index.html` | Single-page UI (Jinja2 template) |
 | `static/css/style.css` | Dark-theme application styles |
+| `docker-compose.local.yml` | On-prem Speech STT + NTTS containers for the hybrid path |
+| `docs/hybrid/` | Customer report, implementation plan, architecture, setup, configuration, testing |
 
 ## Prerequisites
 
@@ -163,6 +169,34 @@ When BYOM is enabled, `VOICE_BYOM_MODEL` becomes the `model` query param and `VO
 ### Optional: Weather tool
 
 Set `ENABLE_WEATHER_TOOL=true` to expose a `get_weather` function the model can call. Uses the browser's geolocation when the user says "near me".
+
+### Optional: Hybrid local fallback (preview)
+
+When sites have intermittent internet, the app can automatically fall back to a
+fully on-prem pipeline (Speech containers + Foundry Local) on a per-session basis.
+Cloud is always preferred when reachable; local mode is voice-only (no avatar,
+no HD voices) and is signalled to the user with an orange `LOCAL` badge.
+
+```env
+ENABLE_LOCAL_FALLBACK=true
+LOCAL_STT_ENDPOINT=http://localhost:5001
+LOCAL_TTS_ENDPOINT=http://localhost:5002
+LOCAL_TTS_VOICE=en-US-JennyNeural
+LOCAL_LLM_ENDPOINT=http://localhost:5273/v1
+LOCAL_LLM_MODEL=qwen2.5-7b-instruct
+```
+
+Full reference and on-prem setup steps live in [`docs/hybrid/`](./docs/hybrid/):
+
+| Doc | Purpose |
+|---|---|
+| [`00-customer-report.md`](./docs/hybrid/00-customer-report.md) | Comparative report — three approaches, what stays in Azure, decision checklist |
+| [`IMPLEMENTATION-PLAN.md`](./docs/hybrid/IMPLEMENTATION-PLAN.md) | MVP scope, file map, milestones, out-of-scope items |
+| [`01-architecture.md`](./docs/hybrid/01-architecture.md) | Component diagram, sequence diagrams, failure modes |
+| [`02-prerequisites.md`](./docs/hybrid/02-prerequisites.md) | Azure + on-prem hardware + identity + network |
+| [`03-onprem-setup.md`](./docs/hybrid/03-onprem-setup.md) | Container pulls, disconnected licensing, Foundry Local install |
+| [`04-app-configuration.md`](./docs/hybrid/04-app-configuration.md) | Every env var, the `/api/hybrid/status` endpoint, troubleshooting |
+| [`05-testing.md`](./docs/hybrid/05-testing.md) | Manual test matrix |
 
 ## Usage
 

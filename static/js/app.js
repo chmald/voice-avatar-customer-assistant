@@ -38,6 +38,11 @@ const styleLabel = $("#styleLabel");
 // Photo avatars injected from server template
 const photoAvatars = window.__PHOTO_AVATARS__ || [];
 
+// Mode badge / notice
+const modeBadge = $("#modeBadge");
+const modeNotice = $("#modeNotice");
+const modeNoticeReason = $("#modeNoticeReason");
+
 // ── State ───────────────────────────────────────────────────────────────────
 let ws = null;
 let peerConnection = null;
@@ -53,6 +58,7 @@ let currentUserDiv = null;
 let currentUserText = "";
 let userLatitude = null;
 let userLongitude = null;
+let currentMode = "cloud"; // "cloud" or "local" — set from session_started
 
 // ── Geolocation ─────────────────────────────────────────────────────────────
 // Request the user's location on page load so weather queries can use it.
@@ -93,8 +99,10 @@ function setStatus(status) {
   statusText.textContent = STATUS_LABELS[status] || status;
 
   const isActive = ["connected", "speaking", "listening"].includes(status);
-  avatarVideo.style.display = isActive ? "block" : "none";
-  videoPlaceholder.style.display = isActive ? "none" : "flex";
+  // In local mode the avatar pane is never used.
+  const showVideo = isActive && currentMode === "cloud" && avatarToggle.checked;
+  avatarVideo.style.display = showVideo ? "block" : "none";
+  videoPlaceholder.style.display = showVideo ? "none" : "flex";
 
   chatInput.disabled = !isActive;
   sendBtn.disabled = !isActive;
@@ -124,6 +132,26 @@ function setSettingsDisabled(disabled) {
   styleSelect.disabled = disabled;
   voiceSelect.disabled = disabled;
   avatarToggle.disabled = disabled;
+}
+
+function applyModeUI(mode, reason) {
+  // Render the CLOUD/LOCAL badge and surface the fallback banner.
+  if (!modeBadge) return;
+  modeBadge.style.display = "inline-block";
+  if (mode === "local") {
+    modeBadge.textContent = "LOCAL";
+    modeBadge.className = "mode-badge mode-local";
+    if (modeNotice) {
+      modeNotice.style.display = "block";
+      if (modeNoticeReason) {
+        modeNoticeReason.textContent = reason ? `(${reason})` : "";
+      }
+    }
+  } else {
+    modeBadge.textContent = "CLOUD";
+    modeBadge.className = "mode-badge mode-cloud";
+    if (modeNotice) modeNotice.style.display = "none";
+  }
 }
 
 function showError(msg) {
@@ -262,12 +290,18 @@ async function handleServerMessage(msg) {
 
   switch (msg.type) {
     case "session_started":
-      console.log("Session started:", msg.sessionId);
+      console.log("Session started:", msg.sessionId, "mode:", msg.mode);
       sessionStarted = true;
-      // In voice-only mode, mark connected immediately (no WebRTC handshake)
-      if (!avatarToggle.checked) {
+      currentMode = msg.mode || "cloud";
+      applyModeUI(currentMode, null);
+      // In voice-only / local mode, mark connected immediately (no WebRTC handshake)
+      if (currentMode === "local" || !avatarToggle.checked) {
         setStatus("connected");
       }
+      break;
+
+    case "mode_notice":
+      applyModeUI(msg.mode || currentMode, msg.reason || null);
       break;
 
     case "ice_servers":
@@ -610,6 +644,9 @@ async function endSession() {
   currentAssistantText = "";
   currentUserDiv = null;
   currentUserText = "";
+  currentMode = "cloud";
+  if (modeBadge) modeBadge.style.display = "none";
+  if (modeNotice) modeNotice.style.display = "none";
 
   setStatus("disconnected");
   clearError();

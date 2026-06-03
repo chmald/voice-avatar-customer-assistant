@@ -35,6 +35,48 @@ class Settings:
     ENABLE_WEATHER_TOOL: bool = os.getenv("ENABLE_WEATHER_TOOL", "false").lower() in ("1", "true", "yes")
     ENABLE_BYOM_MODE: bool = os.getenv("ENABLE_BYOM_MODE", "false").lower() in ("1", "true", "yes")
 
+    # ── Hybrid local fallback (Approach A — see docs/hybrid/) ───────────────
+    # When true, the app will fall back to a fully local STT/LLM/TTS pipeline
+    # if the cloud Voice Live endpoint is unreachable at session start.
+    ENABLE_LOCAL_FALLBACK: bool = os.getenv("ENABLE_LOCAL_FALLBACK", "false").lower() in ("1", "true", "yes")
+
+    # Force the next session to use local mode regardless of cloud reachability
+    # (handy for offline development / demos). Off by default.
+    FORCE_LOCAL_MODE: bool = os.getenv("FORCE_LOCAL_MODE", "false").lower() in ("1", "true", "yes")
+
+    # Local Speech STT container (Azure Speech `speech-to-text` image).
+    # Default points at the docker-compose service name on the same host.
+    LOCAL_STT_ENDPOINT: str = os.getenv("LOCAL_STT_ENDPOINT", "http://localhost:5001")
+    LOCAL_STT_LANGUAGE: str = os.getenv("LOCAL_STT_LANGUAGE", "en-US")
+
+    # Local NTTS container (Azure Speech `neural-text-to-speech` image).
+    LOCAL_TTS_ENDPOINT: str = os.getenv("LOCAL_TTS_ENDPOINT", "http://localhost:5002")
+    # Voice short-name matching the container tag pulled (e.g. en-us-jennyneural → en-US-JennyNeural).
+    LOCAL_TTS_VOICE: str = os.getenv("LOCAL_TTS_VOICE", "en-US-JennyNeural")
+
+    # Local LLM (Microsoft Foundry Local — OpenAI-compatible endpoint).
+    # Foundry Local exposes /v1/chat/completions on a dynamic port; we accept
+    # a full base URL ending in /v1.
+    LOCAL_LLM_ENDPOINT: str = os.getenv("LOCAL_LLM_ENDPOINT", "http://localhost:5273/v1")
+    LOCAL_LLM_MODEL: str = os.getenv("LOCAL_LLM_MODEL", "qwen2.5-7b-instruct")
+    # Foundry Local doesn't require a key, but the OpenAI client insists one
+    # is passed. Any non-empty value works.
+    LOCAL_LLM_API_KEY: str = os.getenv("LOCAL_LLM_API_KEY", "not-needed")
+    LOCAL_LLM_TIMEOUT_S: float = float(os.getenv("LOCAL_LLM_TIMEOUT_S", "30"))
+    LOCAL_LLM_MAX_TOKENS: int = int(os.getenv("LOCAL_LLM_MAX_TOKENS", "256"))
+
+    # Connectivity supervisor.
+    FAILOVER_PROBE_INTERVAL_S: float = float(os.getenv("FAILOVER_PROBE_INTERVAL_S", "15"))
+    FAILOVER_PROBE_TIMEOUT_S: float = float(os.getenv("FAILOVER_PROBE_TIMEOUT_S", "3"))
+    # Consecutive failures before the supervisor flips to "unreachable".
+    FAILOVER_FAILURE_THRESHOLD: int = int(os.getenv("FAILOVER_FAILURE_THRESHOLD", "2"))
+
+    # Energy-based VAD knobs (local mode only — semantic VAD requires Voice Live).
+    LOCAL_VAD_SILENCE_MS: int = int(os.getenv("LOCAL_VAD_SILENCE_MS", "700"))
+    LOCAL_VAD_RMS_THRESHOLD: int = int(os.getenv("LOCAL_VAD_RMS_THRESHOLD", "350"))
+    LOCAL_VAD_MIN_SPEECH_MS: int = int(os.getenv("LOCAL_VAD_MIN_SPEECH_MS", "250"))
+    LOCAL_VAD_MAX_UTTERANCE_MS: int = int(os.getenv("LOCAL_VAD_MAX_UTTERANCE_MS", "20000"))
+
     # Standard video avatar characters and their available styles.
     # Source: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/standard-avatars
     #
@@ -153,6 +195,21 @@ class Settings:
         errors = []
         if not self.AZURE_AI_ENDPOINT:
             errors.append("AZURE_AI_ENDPOINT")
+        return errors
+
+    def validate_local_fallback(self) -> list[str]:
+        """Return missing required keys for the local-fallback path (only checked when enabled)."""
+        errors = []
+        if not self.LOCAL_STT_ENDPOINT:
+            errors.append("LOCAL_STT_ENDPOINT")
+        if not self.LOCAL_TTS_ENDPOINT:
+            errors.append("LOCAL_TTS_ENDPOINT")
+        if not self.LOCAL_LLM_ENDPOINT:
+            errors.append("LOCAL_LLM_ENDPOINT")
+        if not self.LOCAL_LLM_MODEL:
+            errors.append("LOCAL_LLM_MODEL")
+        if not self.LOCAL_TTS_VOICE:
+            errors.append("LOCAL_TTS_VOICE")
         return errors
 
 
