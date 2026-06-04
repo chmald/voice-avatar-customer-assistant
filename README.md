@@ -39,8 +39,8 @@ Browser ←─── WebRTC video/audio ───── Azure Avatar Service
 | `templates/index.html` | Single-page UI (Jinja2 template) |
 | `static/css/style.css` | Dark-theme application styles |
 | `docker-compose.local.yml` | On-prem Speech STT + NTTS containers for the hybrid path |
-| `docs/DEPLOY-DEMO.md` | **Step-by-step deployment guide — start here for a first-time stand-up** |
-| `docs/hybrid/` | Customer report, implementation plan, architecture, setup, configuration, testing, runbook, model selection |
+| `docs/` | Standard project docs (6-doc layout): orchestrator, architecture, prerequisites, deployment, testing, troubleshooting |
+| `docs/hybrid/` | Hybrid-path supplements: customer report, implementation plan, Azure-vs-on-prem responsibility, model selection |
 
 ## Prerequisites
 
@@ -106,10 +106,12 @@ Sources (authoritative — verify before deploying):
 ## Quick Start
 
 > **First time deploying this demo?** Follow the full step-by-step guide in
-> **[`docs/DEPLOY-DEMO.md`](./docs/DEPLOY-DEMO.md)** — it covers prerequisites,
-> provisioning the Azure Foundry resource with `az`, RBAC, validation tests at
-> each step, and the optional hybrid on-prem fallback path. The condensed
-> version below assumes you already have a Foundry resource and tools installed.
+> **[`docs/00-reproduce-this-demo.md`](./docs/00-reproduce-this-demo.md)** — it
+> covers prerequisites, provisioning the Azure Foundry resource with `az`,
+> RBAC, validation tests at each step, and the optional hybrid on-prem
+> fallback path. The phased deployment reference lives in
+> [`docs/03-deployment.md`](./docs/03-deployment.md). The condensed version
+> below assumes you already have a Foundry resource and tools installed.
 
 ```bash
 # Clone and install
@@ -193,20 +195,22 @@ LOCAL_LLM_ENDPOINT=http://localhost:5273/v1
 LOCAL_LLM_MODEL=qwen2.5-7b-instruct
 ```
 
-Full reference and on-prem setup steps live in [`docs/hybrid/`](./docs/hybrid/):
+Full reference and on-prem setup steps live in the standard project docs
+(see [`docs/`](./docs/)). The hybrid-specific supplements live in
+[`docs/hybrid/`](./docs/hybrid/):
 
 | Doc | Purpose |
 |---|---|
-| [`00-customer-report.md`](./docs/hybrid/00-customer-report.md) | Comparative report — three approaches, what stays in Azure, decision checklist |
-| [`IMPLEMENTATION-PLAN.md`](./docs/hybrid/IMPLEMENTATION-PLAN.md) | MVP scope, file map, milestones, out-of-scope items |
-| [`01-architecture.md`](./docs/hybrid/01-architecture.md) | Component diagram, sequence diagrams, failure modes |
-| [`02-prerequisites.md`](./docs/hybrid/02-prerequisites.md) | Azure + on-prem hardware + identity + network |
-| [`03-onprem-setup.md`](./docs/hybrid/03-onprem-setup.md) | Container pulls, disconnected licensing, Foundry Local install |
-| [`04-app-configuration.md`](./docs/hybrid/04-app-configuration.md) | Every env var, the `/api/hybrid/status` endpoint, troubleshooting |
-| [`05-testing.md`](./docs/hybrid/05-testing.md) | Manual test matrix |
-| [`06-deployment-runbook.md`](./docs/hybrid/06-deployment-runbook.md) | **Step-by-step deployment orchestrator (Parts A–F).** Start here once you commit to a deployment. |
-| [`07-azure-vs-onprem.md`](./docs/hybrid/07-azure-vs-onprem.md) | Per-component responsibility matrix, network egress rules, data-flow diagrams |
-| [`08-model-selection.md`](./docs/hybrid/08-model-selection.md) | Voice Live model list (`gpt-realtime`, `gpt-realtime-2`, `gpt-realtime-1.5`, `…-mini`), BYOM profiles, local LLM substitutes, parity table |
+| [`docs/00-reproduce-this-demo.md`](./docs/00-reproduce-this-demo.md) | **Single-page orchestrator** — start here for first-time stand-up |
+| [`docs/01-architecture.md`](./docs/01-architecture.md) | Full app architecture (cloud + hybrid), Mermaid diagram, locked decisions |
+| [`docs/02-prerequisites.md`](./docs/02-prerequisites.md) | Azure + on-prem prerequisites, regional matrix, cost estimate, pre-flight checklist |
+| [`docs/03-deployment.md`](./docs/03-deployment.md) | Phased deployment with validation gates (Phase 1–5) |
+| [`docs/04-testing.md`](./docs/04-testing.md) | Functional tests + hybrid matrix + demo script + performance baselines |
+| [`docs/05-troubleshooting.md`](./docs/05-troubleshooting.md) | Quick-triage table + per-symptom diagnosis + escalation |
+| [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) | Comparative report — three approaches, what stays in Azure, decision checklist |
+| [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) | MVP scope, file map, milestones, out-of-scope items |
+| [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) | Per-component responsibility matrix, network egress rules, data-flow diagrams |
+| [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) | Voice Live model list (`gpt-realtime`, `gpt-realtime-2`, `gpt-realtime-1.5`, `…-mini`), BYOM profiles, local LLM substitutes, parity table |
 
 ## Usage
 
@@ -216,7 +220,25 @@ Full reference and on-prem setup steps live in [`docs/hybrid/`](./docs/hybrid/):
 4. Type a message or click the mic to speak
 5. The AI responds through the avatar (or audio only)
 
+## When to use this app
+
+### Use this app when
+
+- You want a production-style real-time voice + avatar experience built on Azure AI Voice Live and the `gpt-realtime` family.
+- You need a working reference for the Voice Live + TTS Avatar + neural-voice integration in a single FastAPI + browser pair.
+- You want BYOM (private / fine-tuned Azure OpenAI realtime or chat-completion deployments) wired up without writing the connection plumbing yourself.
+- You have sites with intermittent internet and need a **graceful degradation** path — the hybrid local-fallback mode delivers a voice-only conversation on-prem using Azure Speech containers + Foundry Local when the cloud is unreachable.
+
+### Use a different pattern when
+
+- You need a **knowledge-base / RAG** experience over a document corpus → use the low-code RAG knowledge-base pattern (Copilot Studio + Azure AI Search) instead.
+- You need **multi-agent orchestration or custom tool-calling logic** beyond a single function tool → add Foundry Agent Service as an orchestration layer above this app, or use a different pattern entirely.
+- You need a **fully air-gapped** experience with zero cloud dependency. Voice Live, the TTS Avatar, the `gpt-realtime` family, and HD voices are all Azure-only — no on-prem equivalent exists. The hybrid mode degrades gracefully but is not the same UX.
+
 ## Troubleshooting
+
+A short list — the full quick-triage table + per-symptom diagnoses live in
+[`docs/05-troubleshooting.md`](./docs/05-troubleshooting.md).
 
 | Issue | Solution |
 |---|---|
@@ -227,6 +249,20 @@ Full reference and on-prem setup steps live in [`docs/hybrid/`](./docs/hybrid/):
 | BYOM connect fails | Verify `VOICE_BYOM_MODEL` matches a real **deployment name** in the Foundry portal, and that the deployment's profile matches `VOICE_BYOM_MODE` |
 | BYOM 401/403 with override | When using `VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE`, grant the Voice Live resource's managed identity **Foundry User** on the model resource |
 
+## Decision provenance
+
+| Decision area | Where it's recorded |
+|---|---|
+| Cloud orchestrator = Voice Live; model = `gpt-realtime` family | [`docs/01-architecture.md` §Locked design decisions](./docs/01-architecture.md#locked-design-decisions) |
+| Hybrid Approach A (cloud-primary + voice-only fallback) chosen over Approaches B (local-first) and C (tools-only) | [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) |
+| MVP engineering scope + explicit out-of-scope items | [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) |
+| Per-component Azure-vs-on-prem split (what must stay Azure, what can move) | [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) |
+| Voice Live model choice + BYOM profile guidance + local LLM substitutes | [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) |
+
 ## License
 
 MIT
+
+---
+
+*Last updated: 2026-06-04*

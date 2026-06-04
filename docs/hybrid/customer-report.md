@@ -234,3 +234,7 @@ No code changes are being made now — this branch will be created after the cus
 ---
 
 *Document version 1.0 — prepared from a review of the codebase (`config.py`, `voice_handler.py`, `app.py`, `requirements.txt`) and Microsoft Learn documentation for Voice Live, Real-time TTS Avatar, Speech containers, Embedded Speech, and Foundry Local.*
+
+---
+
+*Last updated: 2026-06-04*

@@ -1,6 +1,6 @@
 # Hybrid local-fallback — implementation plan (MVP)
 
-This document is the engineering plan for **Approach A** from [`00-customer-report.md`](./00-customer-report.md): keep Azure Voice Live + Avatar as the primary experience and add a **voice-only local-fallback mode** that the app uses when Azure is unreachable.
+This document is the engineering plan for **Approach A** from [`customer-report.md`](./customer-report.md): keep Azure Voice Live + Avatar as the primary experience and add a **voice-only local-fallback mode** that the app uses when Azure is unreachable.
 
 Status: **in progress on `feature/hybrid-local-fallback`**.
 
@@ -21,7 +21,7 @@ In scope for this branch:
 5. Routing in `app.py`: at session start the supervisor's state plus the `ENABLE_LOCAL_FALLBACK` flag pick the handler. The browser gets a `mode` field on `session_started`.
 6. Browser UI changes: a **Cloud / Local** mode badge in the status bar; the avatar pane auto-hides in Local mode and shows a "voice-only fallback" notice.
 7. `docker-compose.local.yml` to bring up STT + NTTS for development.
-8. Documentation in `docs/hybrid/` (architecture, prerequisites, on-prem setup, app configuration, testing).
+8. Documentation in `docs/` (top-level architecture, prerequisites, deployment, testing, troubleshooting) and `docs/hybrid/` (deep-dive supplements: customer report, this plan, Azure-vs-on-prem responsibility, model selection).
 
 **Explicitly out of scope for MVP** (tracked as follow-ups, not blockers for merge):
 
@@ -60,17 +60,18 @@ ai-voice-live-avatar/
 ├── static/css/style.css                    # CHG: badge styles
 ├── templates/index.html                    # CHG: mode badge markup
 ├── README.md                               # CHG: hybrid section + file index
-└── docs/hybrid/
-    ├── 00-customer-report.md               # Comparative report (already in branch)
-    ├── IMPLEMENTATION-PLAN.md              # This file
-    ├── 01-architecture.md                  # Hybrid architecture + sequence diagrams
-    ├── 02-prerequisites.md                 # On-prem sizing, approvals, identity
-    ├── 03-onprem-setup.md                  # Container pulls, license download, validation
-    ├── 04-app-configuration.md             # Env var reference + troubleshooting
-    ├── 05-testing.md                       # Manual test plan
-    ├── 06-deployment-runbook.md            # Step-by-step Parts A–F orchestrator
-    ├── 07-azure-vs-onprem.md               # Responsibility matrix + data flow + egress rules
-    └── 08-model-selection.md               # Voice Live + BYOM + Foundry Local model guide
+└── docs/
+    ├── 00-reproduce-this-demo.md           # Single-page orchestrator
+    ├── 01-architecture.md                  # Full app architecture (cloud + hybrid)
+    ├── 02-prerequisites.md                 # Cloud always + hybrid optional
+    ├── 03-deployment.md                    # Phased deployment with validation gates
+    ├── 04-testing.md                       # Functional + hybrid matrix + demo script
+    ├── 05-troubleshooting.md               # Triage + per-symptom + escalation
+    └── hybrid/
+        ├── customer-report.md              # Comparative report (Approaches A/B/C)
+        ├── implementation-plan.md          # This file — engineering plan + file map
+        ├── azure-vs-onprem-responsibility.md  # Per-component split + egress rules
+        └── model-selection.md              # gpt-realtime family + BYOM + Foundry Local
 ```
 
 ---
@@ -99,7 +100,7 @@ The browser does not gain any new sent messages — it still sends `start_sessio
 | M4 | Local handler | `LocalSessionHandler` emits the same browser protocol as cloud. End-to-end voice loop works on a developer box that has the containers running. |
 | M5 | Connectivity + routing | Supervisor wired into `app.py`; session start picks the right handler; degraded mode surfaces via `mode_notice`. |
 | M6 | UI | Mode badge, hidden avatar, banner. |
-| M7 | Compose + docs | `docker-compose.local.yml` works on a clean dev box; docs in `docs/hybrid/` complete. |
+| M7 | Compose + docs | `docker-compose.local.yml` works on a clean dev box; the standard 6 docs in `docs/` (per the demo-pattern convention) plus deep-dive supplements in `docs/hybrid/` are complete. |
 | M8 | Smoke test | `python app.py` boots clean; `/api/health` ok; `/api/hybrid/status` returns supervisor state; cloud mode unchanged. |
 
 ---
@@ -121,3 +122,7 @@ The browser does not gain any new sent messages — it still sends `start_sessio
 5. **Foundry Local discovery.** SDK can auto-resolve port (e.g. 5273) but the OpenAI-compatible endpoint is at `/v1`. We accept a full URL via `LOCAL_LLM_ENDPOINT` to avoid SDK coupling.
 
 These are tracked inline in the relevant source files with `# TODO(hybrid-v2):` comments.
+
+---
+
+*Last updated: 2026-06-04*

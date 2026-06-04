@@ -1,8 +1,15 @@
-# Deploy this demo — step by step
+# 00 — Reproduce this demo
 
 > **Audience.** Someone with zero context who wants to run the AI TTS Avatar
 > demo end-to-end. By the time you finish this guide you will have a working
 > avatar in your browser, optionally backed by an on-prem fallback pipeline.
+>
+> **What this doc is.** A single-page orchestrator that threads the install
+> steps, the phased Azure provisioning in [`03-deployment.md`](./03-deployment.md),
+> the validation matrix in [`04-testing.md`](./04-testing.md), and the
+> troubleshooting matrix in [`05-troubleshooting.md`](./05-troubleshooting.md).
+> Read this if you want one continuous walkthrough; read the numbered docs
+> if you want the canonical phased / reference content.
 >
 > **Time budget.** Cloud-only demo: **30–45 minutes** including Azure
 > provisioning. Add the hybrid on-prem fallback path: **+90–120 minutes**
@@ -170,7 +177,7 @@ $endpoint = "https://$FoundryName.services.ai.azure.com"
 > The Voice Live built-in model (`gpt-realtime` and friends) is served
 > directly by Voice Live — **you do not need to deploy any model in
 > Foundry**. The only time you do is when you want a private / fine-tuned
-> deployment via BYOM (see [`docs/hybrid/08-model-selection.md`](./hybrid/08-model-selection.md)).
+> deployment via BYOM (see [`hybrid/model-selection.md`](./hybrid/model-selection.md)).
 
 ### Validation gate ✅
 
@@ -258,7 +265,7 @@ VOICE_LIVE_MODEL=gpt-realtime                                       # or gpt-rea
 ```
 
 The `gpt-realtime` family is built into Voice Live — no Foundry deployment
-required. See [`docs/hybrid/08-model-selection.md`](./hybrid/08-model-selection.md)
+required. See [`hybrid/model-selection.md`](./hybrid/model-selection.md)
 for the full list (including `gpt-realtime-mini`).
 
 ### Validation gate ✅
@@ -424,7 +431,7 @@ curl.exe -sS http://localhost:5273/v1/chat/completions `
 > **Linux note.** Foundry Local doesn't officially ship for Linux yet. Use
 > `vllm serve Qwen/Qwen2.5-7B-Instruct --port 5273 --served-model-name qwen2.5-7b-instruct`
 > instead. The app only needs an OpenAI-compatible `/v1/chat/completions` endpoint —
-> see [`docs/hybrid/08-model-selection.md`](./hybrid/08-model-selection.md).
+> see [`hybrid/model-selection.md`](./hybrid/model-selection.md).
 
 ### 8.5 Enable the hybrid path in `.env`
 
@@ -471,7 +478,7 @@ Browser tests:
 
 ### Full hybrid test matrix
 
-The 10-row test plan in [`docs/hybrid/05-testing.md`](./hybrid/05-testing.md)
+The 10-row test plan in [`04-testing.md §3`](./04-testing.md#3-hybrid-test-matrix-phase-4-only)
 covers every combination (forced/auto, working/missing config,
 barge-in, etc.). Run it once before declaring the hybrid deployment done.
 
@@ -479,13 +486,13 @@ barge-in, etc.). Run it once before declaring the hybrid deployment done.
 
 | If you want to | Read |
 |---|---|
-| Understand the architecture | [`docs/hybrid/01-architecture.md`](./hybrid/01-architecture.md) |
-| Size hardware for production | [`docs/hybrid/02-prerequisites.md`](./hybrid/02-prerequisites.md) |
-| Run the containers truly offline (with Microsoft approval) | [`docs/hybrid/03-onprem-setup.md §3`](./hybrid/03-onprem-setup.md#3-disconnected-mode-offline-tolerant-deployments) |
-| Tune VAD or change voices | [`docs/hybrid/04-app-configuration.md`](./hybrid/04-app-configuration.md) |
-| Know exactly what stays in Azure vs on-prem | [`docs/hybrid/07-azure-vs-onprem.md`](./hybrid/07-azure-vs-onprem.md) |
-| See the customer-facing report | [`docs/hybrid/00-customer-report.md`](./hybrid/00-customer-report.md) |
-| Follow a more formal Parts A–F runbook (for delivery) | [`docs/hybrid/06-deployment-runbook.md`](./hybrid/06-deployment-runbook.md) |
+| Understand the architecture | [`01-architecture.md`](./01-architecture.md) |
+| Size hardware for production | [`02-prerequisites.md`](./02-prerequisites.md) |
+| Run the containers truly offline (with Microsoft approval) | [`03-deployment.md §5.4`](./03-deployment.md#54-switch-container-metering-to-disconnected-offline-tolerant-sites) |
+| Tune VAD or change voices | [`03-deployment.md §5.5`](./03-deployment.md#55-tune-vad-for-the-sites-acoustic-environment) |
+| Know exactly what stays in Azure vs on-prem | [`hybrid/azure-vs-onprem-responsibility.md`](./hybrid/azure-vs-onprem-responsibility.md) |
+| See the customer-facing report | [`hybrid/customer-report.md`](./hybrid/customer-report.md) |
+| Read the engineering plan that produced the hybrid path | [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md) |
 
 ---
 
@@ -527,9 +534,18 @@ az group delete --name $RgName --yes --no-wait
 
 ## Reference
 
-- App protocol and architecture: [`README.md`](../README.md)
-- Hybrid materials: [`docs/hybrid/`](./hybrid/) (architecture, prereqs, on-prem setup, configuration, testing, runbook, Azure-vs-on-prem split, model selection, customer report)
+- App overview: [`../README.md`](../README.md)
+- Architecture: [`01-architecture.md`](./01-architecture.md)
+- Prerequisites: [`02-prerequisites.md`](./02-prerequisites.md)
+- Phased deployment: [`03-deployment.md`](./03-deployment.md)
+- Testing: [`04-testing.md`](./04-testing.md)
+- Troubleshooting: [`05-troubleshooting.md`](./05-troubleshooting.md)
+- Hybrid supplements: [`hybrid/`](./hybrid/) (customer report, implementation plan, Azure-vs-on-prem responsibility, model selection)
 - Microsoft Learn — Voice Live: <https://learn.microsoft.com/azure/ai-services/speech-service/voice-live>
 - Microsoft Learn — TTS Avatar: <https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar>
 - Microsoft Learn — Speech containers: <https://learn.microsoft.com/azure/ai-services/speech-service/speech-container-overview>
 - Microsoft Learn — Foundry Local: <https://learn.microsoft.com/azure/foundry-local/what-is-foundry-local>
+
+---
+
+*Last updated: 2026-06-04*

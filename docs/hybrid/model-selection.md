@@ -182,7 +182,11 @@ The cloud model in use is logged at session start: look for
 
 | Goal | Action |
 |---|---|
-| Move from `gpt-realtime` → `gpt-realtime-2` for evaluation | Change `VOICE_LIVE_MODEL=gpt-realtime-2` on a single test host, run [`05-testing.md`](./05-testing.md) T1–T2, roll out gradually. |
+| Move from `gpt-realtime` → `gpt-realtime-2` for evaluation | Change `VOICE_LIVE_MODEL=gpt-realtime-2` on a single test host, run [`../04-testing.md`](../04-testing.md) F1–F2 and F10, roll out gradually. |
 | Use a fine-tuned `gpt-realtime` deployment | `ENABLE_BYOM_MODE=true`, `VOICE_BYOM_MODE=byom-azure-openai-realtime`, `VOICE_BYOM_MODEL=<your-deployment>`. |
 | Swap the local LLM to Phi-4 | `foundry model download phi-4`; restart Foundry Local; `LOCAL_LLM_MODEL=phi-4`; restart app. |
 | Pin to a specific `gpt-realtime-mini` snapshot | Use BYOM realtime profile and a deployment named for the dated snapshot (e.g. `gpt-realtime-mini-2025-12-15`). |
+
+---
+
+*Last updated: 2026-06-04*
