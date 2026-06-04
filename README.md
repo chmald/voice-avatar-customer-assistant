@@ -197,6 +197,9 @@ Full reference and on-prem setup steps live in [`docs/hybrid/`](./docs/hybrid/):
 | [`03-onprem-setup.md`](./docs/hybrid/03-onprem-setup.md) | Container pulls, disconnected licensing, Foundry Local install |
 | [`04-app-configuration.md`](./docs/hybrid/04-app-configuration.md) | Every env var, the `/api/hybrid/status` endpoint, troubleshooting |
 | [`05-testing.md`](./docs/hybrid/05-testing.md) | Manual test matrix |
+| [`06-deployment-runbook.md`](./docs/hybrid/06-deployment-runbook.md) | **Step-by-step deployment orchestrator (Parts A–F).** Start here once you commit to a deployment. |
+| [`07-azure-vs-onprem.md`](./docs/hybrid/07-azure-vs-onprem.md) | Per-component responsibility matrix, network egress rules, data-flow diagrams |
+| [`08-model-selection.md`](./docs/hybrid/08-model-selection.md) | Voice Live model list (`gpt-realtime`, `gpt-realtime-2`, `gpt-realtime-1.5`, `…-mini`), BYOM profiles, local LLM substitutes, parity table |
 
 ## Usage
 

@@ -11,6 +11,15 @@ class Settings:
 
     # Azure AI / Microsoft Foundry resource (Voice Live API)
     AZURE_AI_ENDPOINT: str = os.getenv("AZURE_AI_ENDPOINT", "")
+    # Voice Live built-in model. Supported values (verify region availability):
+    #   gpt-realtime              (GA, default)
+    #   gpt-realtime-1.5          (GA, longer context, better instruction-following)
+    #   gpt-realtime-2            (preview, latest)
+    #   gpt-realtime-mini         (GA, cost-optimized)
+    #   gpt-4o-realtime-preview        (legacy preview)
+    #   gpt-4o-mini-realtime-preview   (legacy preview)
+    # For private/fine-tuned deployments use the BYOM settings below instead.
+    # Reference: docs/hybrid/08-model-selection.md
     VOICE_LIVE_MODEL: str = os.getenv("VOICE_LIVE_MODEL", "gpt-realtime")
 
     # Optional BYOM (Bring Your Own Model) configuration.

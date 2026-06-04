@@ -67,7 +67,10 @@ ai-tts-avatar/
     ├── 02-prerequisites.md                 # On-prem sizing, approvals, identity
     ├── 03-onprem-setup.md                  # Container pulls, license download, validation
     ├── 04-app-configuration.md             # Env var reference + troubleshooting
-    └── 05-testing.md                       # Manual test plan
+    ├── 05-testing.md                       # Manual test plan
+    ├── 06-deployment-runbook.md            # Step-by-step Parts A–F orchestrator
+    ├── 07-azure-vs-onprem.md               # Responsibility matrix + data flow + egress rules
+    └── 08-model-selection.md               # Voice Live + BYOM + Foundry Local model guide
 ```
 
 ---
