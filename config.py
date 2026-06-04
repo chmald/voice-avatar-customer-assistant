@@ -1,4 +1,4 @@
-"""Configuration management for AI TTS Avatar (Voice Live API)."""
+"""Configuration management for Azure AI Voice Live API with Avatar."""
 
 import os
 from dotenv import load_dotenv

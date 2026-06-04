@@ -1,7 +1,7 @@
-# Hybrid Localization Options for the AI TTS Avatar Application
+# Hybrid Localization Options for the Azure AI Voice Live API with Avatar Application
 
 **Audience:** Customer architecture / decision-maker
-**Source application:** `ai-tts-avatar` (FastAPI + Azure AI Voice Live + Real-time TTS Avatar)
+**Source application:** `ai-voice-live-avatar` (FastAPI + Azure AI Voice Live API with Avatar)
 **Goal:** Reduce network dependency on cloud Azure services so that application instances on sites with poor or intermittent internet connectivity remain usable, **without** abandoning Azure as the primary platform.
 **Status:** Discovery / planning. Implementation will follow on a feature branch once the approach is approved.
 

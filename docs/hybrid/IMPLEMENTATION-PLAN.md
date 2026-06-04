@@ -38,7 +38,7 @@ In scope for this branch:
 ## 2. File map
 
 ```
-ai-tts-avatar/
+ai-voice-live-avatar/
 ├── app.py                                  # CHG: route handler by mode
 ├── config.py                               # CHG: new env vars + validation
 ├── voice_handler.py                        # KEEP: file remains (re-exports for back-compat)

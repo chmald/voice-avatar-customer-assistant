@@ -1,4 +1,4 @@
-# AI TTS Avatar
+# Azure AI Voice Live API with Avatar
 
 Real-time AI voice assistant with an optional lifelike avatar, powered by [Azure Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to).
 
@@ -39,7 +39,8 @@ Browser ←─── WebRTC video/audio ───── Azure Avatar Service
 | `templates/index.html` | Single-page UI (Jinja2 template) |
 | `static/css/style.css` | Dark-theme application styles |
 | `docker-compose.local.yml` | On-prem Speech STT + NTTS containers for the hybrid path |
-| `docs/hybrid/` | Customer report, implementation plan, architecture, setup, configuration, testing |
+| `docs/DEPLOY-DEMO.md` | **Step-by-step deployment guide — start here for a first-time stand-up** |
+| `docs/hybrid/` | Customer report, implementation plan, architecture, setup, configuration, testing, runbook, model selection |
 
 ## Prerequisites
 
@@ -104,10 +105,16 @@ Sources (authoritative — verify before deploying):
 
 ## Quick Start
 
+> **First time deploying this demo?** Follow the full step-by-step guide in
+> **[`docs/DEPLOY-DEMO.md`](./docs/DEPLOY-DEMO.md)** — it covers prerequisites,
+> provisioning the Azure Foundry resource with `az`, RBAC, validation tests at
+> each step, and the optional hybrid on-prem fallback path. The condensed
+> version below assumes you already have a Foundry resource and tools installed.
+
 ```bash
 # Clone and install
 git clone <your-repo-url>
-cd ai-tts-avatar
+cd ai-voice-live-avatar
 python -m venv venv
 source venv/bin/activate      # macOS/Linux
 # venv\Scripts\activate       # Windows

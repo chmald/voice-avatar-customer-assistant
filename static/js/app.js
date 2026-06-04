@@ -1,5 +1,5 @@
 /**
- * AI TTS Avatar — browser client.
+ * Azure AI Voice Live API with Avatar — browser client.
  *
  * Two modes:
  *   Avatar:     WebRTC video/audio from Azure, mic audio via WebSocket.

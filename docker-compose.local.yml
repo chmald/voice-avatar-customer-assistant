@@ -23,7 +23,7 @@
 services:
   speech-stt:
     image: mcr.microsoft.com/azure-cognitive-services/speechservices/speech-to-text:5.1.0-amd64-en-us
-    container_name: ai-tts-avatar-stt
+    container_name: ai-voice-live-avatar-stt
     restart: unless-stopped
     ports:
       - "5001:5000"
@@ -39,7 +39,7 @@ services:
     # change the tag to match the voice you want and update LOCAL_TTS_VOICE in .env.
     # Full tag list: https://mcr.microsoft.com/v2/azure-cognitive-services/speechservices/neural-text-to-speech/tags/list
     image: mcr.microsoft.com/azure-cognitive-services/speechservices/neural-text-to-speech:3.11.0-amd64-en-us-jennyneural
-    container_name: ai-tts-avatar-tts
+    container_name: ai-voice-live-avatar-tts
     restart: unless-stopped
     ports:
       - "5002:5000"

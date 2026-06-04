@@ -26,7 +26,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _OUTPUT_FORMAT = "raw-24khz-16bit-mono-pcm"
-_USER_AGENT = "ai-tts-avatar-hybrid/1.0"
+_USER_AGENT = "ai-voice-live-avatar-hybrid/1.0"
 
 
 def _build_ssml(text: str, voice: str, locale: str) -> str:

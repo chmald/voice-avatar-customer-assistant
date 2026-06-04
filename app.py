@@ -1,4 +1,4 @@
-"""AI TTS Avatar — FastAPI backend.
+"""Azure AI Voice Live API with Avatar — FastAPI backend.
 
 Bridges browser WebSocket ↔ a session handler. Two handlers exist:
 
@@ -46,7 +46,7 @@ _sessions: Dict[str, SessionHandler] = {}
 _tasks: Dict[str, asyncio.Task] = {}
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
-app = FastAPI(title="AI TTS Avatar")
+app = FastAPI(title="Azure AI Voice Live API with Avatar")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 

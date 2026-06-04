@@ -1,6 +1,6 @@
 # 06 — Deployment runbook
 
-> Single-page orchestrator for standing up the hybrid AI TTS Avatar — cloud
+> Single-page orchestrator for standing up the hybrid Azure AI Voice Live API with Avatar — cloud
 > path + on-prem local-fallback path — from scratch. Each Part is a discrete
 > checkpoint; finish A before starting B.
 >
@@ -103,7 +103,7 @@ Goal: confirm the unchanged cloud path before any hybrid plumbing is enabled.
 
 ```pwsh
 git clone <your-repo-url>
-cd ai-tts-avatar
+cd ai-voice-live-avatar
 git checkout feature/hybrid-local-fallback   # or main once merged
 
 python -m venv venv

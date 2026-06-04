@@ -1,4 +1,4 @@
-"""Session handlers for the AI TTS Avatar app.
+"""Session handlers for the Azure AI Voice Live API with Avatar app.
 
 A session handler owns a single conversation between a browser client and a
 back-end voice pipeline. Today there are two implementations:
