@@ -17,3 +17,9 @@ dist/
 *.p12
 secrets/
 .azure/
+
+# IaC — keep templates, ignore populated copies and build artifacts
+infra/.build/
+infra/*.local.json
+infra/main.parameters.local.json
+.bicep/

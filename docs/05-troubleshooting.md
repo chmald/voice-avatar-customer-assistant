@@ -44,7 +44,7 @@ directory**. Most common causes:
 **Fix:**
 
 ```pwsh
-cd C:\path\to\ai-tts-avatar
+cd C:\path\to\ai-voice-live-avatar
 Get-ChildItem .env           # confirm it exists
 Get-Content .env | Select-String AZURE_AI_ENDPOINT
 python app.py
@@ -164,7 +164,7 @@ Mapping: image tag `<ver>-amd64-en-us-jennyneural` ↔ env value `en-US-JennyNeu
 
 ```bash
 # What's in the container right now?
-docker inspect ai-tts-avatar-tts --format '{{ .Config.Image }}'
+docker inspect ai-voice-live-avatar-tts --format '{{ .Config.Image }}'
 # Match the env value
 grep LOCAL_TTS_VOICE .env
 ```
@@ -192,7 +192,7 @@ The container loaded a different locale than the request claims. The `speech-to-
 **Fix:**
 
 ```bash
-docker inspect ai-tts-avatar-stt --format '{{ .Config.Image }}'   # confirms locale
+docker inspect ai-voice-live-avatar-stt --format '{{ .Config.Image }}'   # confirms locale
 grep LOCAL_STT_LANGUAGE .env
 ```
 

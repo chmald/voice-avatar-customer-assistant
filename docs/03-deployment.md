@@ -20,6 +20,100 @@ This document is the canonical phased reference.
 
 ## Phase 1 — Provision the Azure surface
 
+Two paths produce the same end-state. Pick one:
+
+| Path | Best for | Where |
+|---|---|---|
+| **A1. Automated (Bicep)** | Repeated deployments, CI/CD, environment parity | [§1.0 below](#10-automated-path-bicep) |
+| **A2. Manual (`az` CLI)** | Learning the architecture, one-off dev loops, places where IaC isn't allowed | [§1.1 onwards](#11-authenticate-and-pick-a-subscription) |
+
+Both paths produce: a resource group, a Foundry resource (`kind=AIServices`, S0, custom-domain, system-assigned managed identity), and the `Cognitive Services User` + `Azure AI User` role assignments for the principals you specify.
+
+### 1.0 Automated path (Bicep)
+
+The repo ships a subscription-scope Bicep deployment under [`infra/`](../infra/):
+
+```
+infra/
+├── main.bicep              # subscription-scope entry point
+├── main.parameters.json    # template — copy to main.parameters.local.json and edit
+├── modules/
+│   ├── foundry.bicep       # Microsoft.CognitiveServices/accounts (kind=AIServices)
+│   └── rbac.bicep          # Cognitive Services User + Azure AI User assignments
+└── deploy.ps1              # PowerShell wrapper around `az deployment sub create`
+```
+
+#### Quick run
+
+```pwsh
+# 1. Copy the template and edit your values
+Copy-Item infra\main.parameters.json infra\main.parameters.local.json
+notepad infra\main.parameters.local.json
+# Set at minimum: location, environment, workloadPrefix.
+# Set appPrincipalObjectIds (object ID of your user / app / MI) to auto-grant RBAC.
+
+# 2. Dry-run to see what would change
+pwsh .\infra\deploy.ps1 -ParametersFile .\infra\main.parameters.local.json -WhatIf
+
+# 3. Deploy + smoke-verify + write AZURE_AI_ENDPOINT into .env
+pwsh .\infra\deploy.ps1 `
+    -ParametersFile .\infra\main.parameters.local.json `
+    -WriteEnv -Verify
+```
+
+#### Bicep parameters
+
+| Parameter | Default | Purpose |
+|---|---|---|
+| `location` | `eastus2` | Region — restricted to Voice Live / TTS Avatar regions ([`02-prerequisites.md §1.3`](./02-prerequisites.md#13-regional-availability-matrix)). |
+| `environment` | `dev` | Short env tag baked into resource names + tags. Allowed: `dev` / `test` / `prod`. |
+| `workloadPrefix` | `avla` | 3–8 char prefix used in default names. |
+| `resourceGroupNameOverride` | `""` | Override the auto-generated RG name `rg-<prefix>-<env>-<region>`. |
+| `foundryNameOverride` | `""` | Override the auto-generated Foundry account name. Must be globally unique. |
+| `foundrySku` | `S0` | Only S0 is supported (Voice Live + TTS Avatar require it). |
+| `appPrincipalObjectIds` | `[]` | Array of object IDs to grant Cognitive Services User + Azure AI User. Leave empty if you'd rather assign RBAC manually with `az`. |
+| `appPrincipalType` | `User` | Must match what `appPrincipalObjectIds` resolves to — `User`, `ServicePrincipal`, or `Group`. |
+| `tags` | see template | Tags applied to every resource. |
+
+#### Outputs
+
+The deployment surfaces six outputs that `deploy.ps1` echoes (and writes to `.env` when `-WriteEnv` is passed):
+
+| Output | Where to use it |
+|---|---|
+| `azureAiEndpoint` | → `AZURE_AI_ENDPOINT` in `.env`. The `*.services.ai.azure.com` URL Voice Live needs. |
+| `cognitiveServicesEndpoint` | → `SPEECH_BILLING` for the on-prem Speech containers (Phase 4). |
+| `foundryName` | Resource name; pass to `az cognitiveservices account keys list` for the Speech container key. |
+| `resourceGroupName` | RG the resources live in. |
+| `foundryPrincipalId` | System-assigned MI; grant **Foundry User** on a model's Foundry resource for BYOM cross-resource (`VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE`). |
+| `roleAssignmentsCreated` | Count of principals that got the runtime roles. |
+
+#### Idempotency + re-runs
+
+- Role assignments use deterministic `guid()` names — re-deploys are safe.
+- The Foundry resource is matched by name; re-deploying with the same parameters updates tags/identity only, never recreates.
+- If you populated `main.parameters.local.json`, it's gitignored automatically (see `.gitignore`).
+
+#### CI/CD
+
+For ADO Pipelines or GitHub Actions, drive the same `infra/main.bicep` from a workflow with a service-principal identity:
+
+```yaml
+# .github/workflows/deploy-azure.yml (sketch — not in this repo)
+- uses: azure/login@v2
+  with: { creds: ${{ secrets.AZURE_CREDENTIALS }} }
+- run: |
+    az deployment sub create \
+        --location eastus2 \
+        --template-file infra/main.bicep \
+        --parameters @infra/main.parameters.local.json \
+        --name voice-live-avatar-${{ github.run_id }}
+```
+
+After Phase 1.0 succeeds, skip to **Phase 2** — the manual sub-sections below are an alternative, not a continuation.
+
+---
+
 ### 1.1 Authenticate and pick a subscription
 
 ```pwsh
@@ -110,8 +204,8 @@ curl.exe -sS -I $endpoint | Select-Object -First 1
 ### 2.1 Clone and install dependencies
 
 ```pwsh
-git clone <your-repo-url> ai-tts-avatar
-cd ai-tts-avatar
+git clone <your-repo-url> ai-voice-live-avatar
+cd ai-voice-live-avatar
 git checkout main                       # or feature/hybrid-local-fallback for Phase 4
 
 python -m venv .venv
@@ -295,7 +389,7 @@ Apply once both modes work end-to-end. Each item is independent — adopt the on
 
 | OS | Command |
 |---|---|
-| Linux (systemd) | Create `/etc/systemd/system/ai-tts-avatar.service` pointing at `python app.py` in the venv, `User=` the service account, `Restart=always`. `systemctl enable --now ai-tts-avatar`. |
+| Linux (systemd) | Create `/etc/systemd/system/voice-live-avatar.service` pointing at `python app.py` in the venv, `User=` the service account, `Restart=always`. `systemctl enable --now voice-live-avatar`. |
 | Windows | Use [NSSM](https://nssm.cc/) to wrap `python app.py` as a service. |
 
 ### 5.2 Pin container tags

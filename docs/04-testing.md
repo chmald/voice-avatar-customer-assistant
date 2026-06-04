@@ -1,8 +1,9 @@
 # 04 — Testing
 
-> Test plan for the AI TTS Avatar covering cloud (Phase 3) and the optional
-> hybrid path (Phase 4). Manual today — automated coverage of the new code
-> paths is tracked in [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md).
+> Test plan for Azure AI Voice Live API with Avatar covering cloud (Phase
+> 3) and the optional hybrid path (Phase 4). Manual today — automated
+> coverage of the new code paths is tracked in
+> [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md).
 
 ---
 

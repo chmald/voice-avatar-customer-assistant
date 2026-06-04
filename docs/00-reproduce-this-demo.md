@@ -1,8 +1,9 @@
 # 00 — Reproduce this demo
 
-> **Audience.** Someone with zero context who wants to run the AI TTS Avatar
-> demo end-to-end. By the time you finish this guide you will have a working
-> avatar in your browser, optionally backed by an on-prem fallback pipeline.
+> **Audience.** Someone with zero context who wants to run the Azure AI
+> Voice Live + Avatar demo end-to-end. By the time you finish this guide you
+> will have a working avatar in your browser, optionally backed by an on-prem
+> fallback pipeline.
 >
 > **What this doc is.** A single-page orchestrator that threads the install
 > steps, the phased Azure provisioning in [`03-deployment.md`](./03-deployment.md),
@@ -142,6 +143,12 @@ Voice Live, TTS Avatar, and HD voices. The safest choices for full feature
 parity are `eastus2`, `westus2`, `westeurope`, `swedencentral`, or
 `southeastasia` — see the regional matrix in [`README.md`](../README.md).
 
+> **Prefer Infrastructure-as-Code?** Skip the `az` block below and run the
+> Bicep deployment instead — see [`03-deployment.md §1.0`](./03-deployment.md#10-automated-path-bicep).
+> One command: `pwsh .\infra\deploy.ps1 -ParametersFile .\infra\main.parameters.local.json -WriteEnv -Verify`.
+> The manual `az` walkthrough below is the equivalent click-by-click version
+> for learning the architecture or for environments where IaC isn't allowed.
+
 ```pwsh
 # 1. Sign in
 az login
@@ -152,8 +159,8 @@ az account show -o table          # verify the right tenant + subscription
 # 2. Variables (customize these)
 $Sub        = az account show --query id -o tsv
 $Region     = "eastus2"
-$RgName     = "rg-ai-tts-avatar-demo"
-$FoundryName = "aif-ttsdemo-$(Get-Random -Maximum 9999)"
+$RgName     = "rg-avla-demo"
+$FoundryName = "aif-avla-demo-$(Get-Random -Maximum 9999)"
 
 # 3. Resource group
 az group create --name $RgName --location $Region -o table
@@ -231,8 +238,8 @@ an auth error, wait and retry.
 ## Step 4 — Clone the repo and install Python deps
 
 ```pwsh
-git clone <your-repo-url> ai-tts-avatar
-cd ai-tts-avatar
+git clone <your-repo-url> ai-voice-live-avatar
+cd ai-voice-live-avatar
 git checkout main             # or feature/hybrid-local-fallback for Scope B
 
 python -m venv .venv

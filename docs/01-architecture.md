@@ -1,7 +1,7 @@
 # 01 — Architecture
 
-> Reference architecture for the AI TTS Avatar. Read first, then move to
-> [`02-prerequisites.md`](./02-prerequisites.md).
+> Reference architecture for Azure AI Voice Live API with Avatar. Read
+> first, then move to [`02-prerequisites.md`](./02-prerequisites.md).
 
 ---
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "_note": "Template parameters file for infra/main.bicep. Copy this to `main.parameters.local.json` (gitignored) and fill in the real values for your environment. Never commit a populated copy.",
+  "parameters": {
+    "location": {
+      "value": "eastus2"
+    },
+    "environment": {
+      "value": "dev"
+    },
+    "workloadPrefix": {
+      "value": "avla"
+    },
+    "resourceGroupNameOverride": {
+      "value": ""
+    },
+    "foundryNameOverride": {
+      "value": ""
+    },
+    "foundrySku": {
+      "value": "S0"
+    },
+    "appPrincipalObjectIds": {
+      "value": []
+    },
+    "appPrincipalType": {
+      "value": "User"
+    },
+    "tags": {
+      "value": {
+        "workload": "voice-live-avatar",
+        "environment": "dev",
+        "managedBy": "bicep"
+      }
+    }
+  }
+}

@@ -39,6 +39,7 @@ Browser ←─── WebRTC video/audio ───── Azure Avatar Service
 | `templates/index.html` | Single-page UI (Jinja2 template) |
 | `static/css/style.css` | Dark-theme application styles |
 | `docker-compose.local.yml` | On-prem Speech STT + NTTS containers for the hybrid path |
+| `infra/` | **Bicep IaC for the Azure surface** — subscription-scope `main.bicep` + Foundry + RBAC modules + `deploy.ps1` wrapper |
 | `docs/` | Standard project docs (6-doc layout): orchestrator, architecture, prerequisites, deployment, testing, troubleshooting |
 | `docs/hybrid/` | Hybrid-path supplements: customer report, implementation plan, Azure-vs-on-prem responsibility, model selection |
 
