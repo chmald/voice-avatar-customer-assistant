@@ -1,269 +1,210 @@
 # Azure AI Voice Live API with Avatar
 
-Real-time AI voice assistant with an optional lifelike avatar, powered by [Azure Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to).
+<p align="center">
+  <img src="./docs/assets/icons/speech.svg" width="40" alt="Voice Live API (Azure Speech)"/>&nbsp;
+  <img src="./docs/assets/icons/users.svg" width="40" alt="Text to speech avatar"/>&nbsp;
+  <img src="./docs/assets/icons/foundry.svg" width="40" alt="Microsoft Foundry"/>&nbsp;
+  <img src="./docs/assets/icons/foundry-models.svg" width="40" alt="Foundry Models (gpt-realtime-2.1)"/>&nbsp;
+  <img src="./docs/assets/icons/azure-openai.svg" width="40" alt="Azure OpenAI (BYOM)"/>&nbsp;
+  <img src="./docs/assets/icons/entra-id.svg" width="40" alt="Microsoft Entra ID"/>&nbsp;
+  <img src="./docs/assets/icons/dev-console.svg" width="40" alt="Azure Developer CLI"/>
+</p>
 
-![Python](https://img.shields.io/badge/Python-FastAPI-009688?logo=fastapi&logoColor=white)
-![Azure](https://img.shields.io/badge/Azure-Voice%20Live-0078D4?logo=microsoftazure&logoColor=white)
+<p align="center">
+  <img src="./docs/assets/badges/version.svg" alt="Pattern version 1.1.0"/>
+  <img src="./docs/assets/badges/ga.svg" alt="Voice Live API, real-time avatar and gpt-realtime-2.1: GA"/>
+  <img src="./docs/assets/badges/api-version.svg" alt="Voice Live API version 2026-04-10"/>
+  <img src="./docs/assets/badges/default-model.svg" alt="Default model gpt-realtime-2.1"/>
+  <img src="./docs/assets/badges/azd-up.svg" alt="Deploy with azd up"/>
+  <img src="./docs/assets/badges/opt-in.svg" alt="Hybrid local fallback: opt-in"/>
+  <img src="./docs/assets/badges/static-only.svg" alt="v1.1.0 retrofit validated statically"/>
+</p>
 
-## Features
+A reusable, pro-code reference for a **real-time AI voice assistant with a lifelike avatar**. One FastAPI process bridges the browser to the [Azure AI Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live), which fuses speech recognition, a realtime model (built-in `gpt-realtime-2.1` or your own via BYOM), neural / HD voices and the [real-time text to speech avatar](https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar) behind one WebSocket. Function calling, keyless Entra ID auth, a one-command `azd up` for the Azure side, and an **opt-in on-prem fallback** (Speech containers + Foundry Local) for sites with unreliable connectivity are included. It is written for architects, developers and presenters who need a working demo they can retarget with configuration only.
 
-- **Avatar mode** — WebRTC-streamed photorealistic avatar (Lisa, Harry, Max, Lori)
-- **Voice-only mode** — Same AI conversation without the avatar video
-- **Voice input** — Mic capture at 24 kHz via AudioWorklet, noise/echo cancellation server-side
-- **Text input** — Type messages for the AI to respond to
-- **Multiple voices** — Azure standard + HD (Dragon) voices
-- **Proactive greeting** — The assistant speaks first when a session starts
-- **BYOM (Bring Your Own Model)** — Point at a custom Foundry deployment (Azure OpenAI realtime / chat completion / Anthropic Claude)
-- **Hybrid local fallback (preview)** — When the cloud is unreachable, sessions automatically continue on-prem against Speech containers + Foundry Local. See [`docs/hybrid/`](./docs/hybrid/).
-- **Optional weather tool** — Function-calling demo using browser geolocation
-- **DefaultAzureCredential** — Keyless auth via Azure CLI or managed identity
+> [!NOTE]
+> **Start here.** First time? Follow [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md). Want the design first? Read [01 — Architecture](./docs/01-architecture.md). Version 1.1.0 retrofits the docs to the visual standard, adds the `azd` template and refreshes every Microsoft Learn claim (snapshot **2026-10-07**, see [`CHANGELOG.md`](./CHANGELOG.md)). The retrofit was validated statically; the live test matrix in [04 — Testing](./docs/04-testing.md) still has to be re-run on Azure.
 
-## Architecture
+## At a glance
 
+| | Topic | One-line answer |
+|---|---|---|
+| <img src="./docs/assets/icons/speech.svg" width="24" alt="Voice Live API"/> | **What it is** | Browser ↔ FastAPI ↔ Voice Live API, with the avatar streamed to the browser over WebRTC |
+| <img src="./docs/assets/icons/foundry-models.svg" width="24" alt="Foundry Models"/> | **Model** | `gpt-realtime-2.1` built into Voice Live (no deployment); BYOM for your own deployments ![Default](./docs/assets/badges/default.svg) |
+| <img src="./docs/assets/icons/foundry.svg" width="24" alt="Microsoft Foundry"/> | **Azure footprint** | One resource group + one Microsoft Foundry resource (`AIServices`, S0) + two role assignments |
+| <img src="./docs/assets/icons/foundry.svg" width="24" alt="Foundry Local"/> | **Offline story** | Opt-in voice-only fallback on an edge host: Speech containers + Foundry Local ![Opt-in](./docs/assets/badges/opt-in.svg) |
+| <img src="./docs/assets/icons/dev-console.svg" width="24" alt="Azure Developer CLI"/> | **Deploy** | `azd up` (tenant-guarded hooks), `infra/deploy.ps1`, or the portal path ![azd up](./docs/assets/badges/azd-up.svg) |
+| <img src="./docs/assets/icons/gear.svg" width="24" alt="Configuration"/> | **Retarget** | `.env` + `SYSTEM_PROMPT` in `config.py` — see [07 — Configuration reference](./docs/07-configuration-reference.md) |
+
+## What this pattern delivers
+
+[![Reference architecture: browser, FastAPI app host, Microsoft Foundry resource, identity and the optional on-prem edge host](./docs/assets/ai-voice-live-avatar-architecture.png)](./docs/assets/ai-voice-live-avatar-architecture.png)
+
+<sub>Editable source: [`docs/assets/ai-voice-live-avatar-architecture.drawio`](./docs/assets/ai-voice-live-avatar-architecture.drawio) — regenerate with `python scripts/export_diagrams.py docs/assets`.</sub>
+
+- **Avatar mode** — WebRTC-streamed standard video avatars (Lisa, Harry, Lori, Max, Meg, Rowan, …) and photo avatars.
+- **Voice-only mode** — the same conversation without avatar video (faster to start, cheaper).
+- **Voice and text input** — 24 kHz PCM16 mic capture via AudioWorklet; server-side noise suppression, echo cancellation and semantic turn detection.
+- **Voices** — Azure HD (`DragonHDLatestNeural`), Multilingual and Standard neural voices, chosen per session.
+- **Proactive greeting** — the assistant speaks first (English by default, configurable in `SYSTEM_PROMPT`).
+- **BYOM** — point Voice Live at your own Foundry deployment (realtime, chat completion, or Claude via `byom-foundry-anthropic-messages` ![Preview](./docs/assets/badges/preview.svg)).
+- **Function calling** — optional `get_weather` tool with browser geolocation.
+- **Hybrid local fallback** — sessions continue voice-only on-prem when the cloud is unreachable (per-session decision, orange `LOCAL` badge).
+- **Keyless auth** — `DefaultAzureCredential` (Azure CLI on a dev box, managed identity in production).
+
+## What's inside
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="./docs/assets/icons/speech.svg" width="48" alt="Voice Live API"><br><b>Voice Live API</b><br><sub>Speech-to-speech over one WebSocket.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/users.svg" width="48" alt="Real-time avatar"><br><b>Real-time avatar</b><br><sub>Video + photo avatars over WebRTC.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/foundry-models.svg" width="48" alt="gpt-realtime-2.1"><br><b>gpt-realtime-2.1</b><br><sub>Built-in default model.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/azure-openai.svg" width="48" alt="BYOM"><br><b>BYOM</b><br><sub>Your own Foundry deployment.</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><img src="./docs/assets/icons/entra-id.svg" width="48" alt="Microsoft Entra ID"><br><b>Entra ID + RBAC</b><br><sub>Cognitive Services User + Foundry User.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/dev-console.svg" width="48" alt="FastAPI app"><br><b>FastAPI app</b><br><sub>WebSocket router + session handlers.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/speech.svg" width="48" alt="Speech containers"><br><b>Speech containers</b><br><sub>Opt-in on-prem STT + neural TTS.</sub></td>
+    <td align="center" width="25%"><img src="./docs/assets/icons/foundry.svg" width="48" alt="Foundry Local"><br><b>Foundry Local</b><br><sub>Opt-in on-device LLM.</sub></td>
+  </tr>
+</table>
+
+[![Service catalog: every product in the pattern, grouped by layer, with its status](./docs/assets/service-catalog.png)](./docs/assets/service-catalog.png)
+
+<sub>Editable source: [`docs/assets/service-catalog.drawio`](./docs/assets/service-catalog.drawio).</sub>
+
+## Choose a mode and a deployment path
+
+| | Cloud mode (Voice Live) | Local fallback mode (edge host) |
+|---|---|---|
+| **Status** | ![GA](./docs/assets/badges/ga.svg) ![Default](./docs/assets/badges/default.svg) | ![Opt-in](./docs/assets/badges/opt-in.svg) (this repo's MVP) |
+| **Avatar** | ✅ real-time avatar over WebRTC | ❌ voice-only by design |
+| **Voices** | HD, Multilingual, Standard | One standard voice per NTTS image |
+| **Turn detection** | Azure semantic VAD + barge-in | Energy VAD (`LOCAL_VAD_*`) |
+| **Function calling** | ✅ | ❌ not in the MVP |
+| **First audio (indicative)** | ~0.5–1.0 s | ~2–4 s, GPU-dependent |
+| **Recommendation** | **Default for every demo** | Only for sites with unreliable connectivity |
+
+| Deployment path | Best for | Doc |
+|---|---|---|
+| ![azd up](./docs/assets/badges/azd-up.svg) **`azd up`** | One command, tenant-guarded hooks, writes `.env` for you | [03 — Deployment § Fast path](./docs/03-deployment.md#fast-path--azd-up) |
+| **`infra/deploy.ps1`** | Same Bicep from a script / pipeline | [03 — Deployment § Script path](./docs/03-deployment.md#phase-1--script-path-infradeployps1) |
+| ![Manual path](./docs/assets/badges/manual-path.svg) **Portal / az CLI** | Workshops, no-IaC environments | [03b — Manual deployment](./docs/03b-manual-deployment.md) |
+| **Recommendation** | Use **`azd up`** unless policy forbids IaC | |
+
+## Quick start
+
+| Step | | Action | Gate |
+|---|---|---|---|
+| **0** | <img src="./docs/assets/icons/entra-id.svg" width="28" alt=""/> | `az login --tenant <tenant-id>` · `az account set --subscription <subscription-id>` · `azd auth login --tenant-id <tenant-id>` | ☐ `az account show` shows the intended tenant + subscription |
+| **1** | <img src="./docs/assets/icons/dev-console.svg" width="28" alt=""/> | `azd env new <name>` · `azd env set AZURE_TENANT_ID …` · `AZURE_SUBSCRIPTION_ID …` · `AZURE_LOCATION eastus2` | ☐ `azd env get-values` shows all three |
+| **2** | <img src="./docs/assets/icons/foundry.svg" width="28" alt=""/> | `azd up` | ☐ Hooks pass; `.env` has `AZURE_AI_ENDPOINT` |
+| **3** | <img src="./docs/assets/icons/code.svg" width="28" alt=""/> | `python -m venv .venv` · activate · `pip install -r requirements.txt` · `python app.py` | ☐ `curl http://localhost:8000/api/health` → `"status":"ok"` |
+| **4** | <img src="./docs/assets/icons/users.svg" width="28" alt=""/> | Open <http://localhost:8000> in Chrome or Edge → **Start Avatar** | ☐ Avatar appears and greets you |
+
+<details><summary><b>Show the commands</b></summary>
+
+```pwsh
+az login --tenant <tenant-id>
+az account set --subscription <subscription-id>
+azd auth login --tenant-id <tenant-id>
+
+azd env new voice-avatar-dev
+azd env set AZURE_TENANT_ID <tenant-id>
+azd env set AZURE_SUBSCRIPTION_ID <subscription-id>
+azd env set AZURE_LOCATION eastus2
+azd up                                   # preprovision guard -> Bicep -> postprovision writes .env
+
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1           # macOS/Linux: . ./.venv/bin/activate
+pip install -r requirements.txt
+python app.py                            # http://localhost:8000
 ```
-Browser ←WebSocket→ FastAPI backend ←SDK→ Azure Voice Live API
-                                              ↕ (avatar mode)
-Browser ←─── WebRTC video/audio ───── Azure Avatar Service
-```
 
-| File | Purpose |
-|---|---|
-| `app.py` | FastAPI server, WebSocket message router, session management, hybrid routing |
-| `voice_handler.py` | Back-compat shim — re-exports `CloudVoiceLiveSessionHandler` as `VoiceSessionHandler` |
-| `session_handlers/` | `SessionHandler` protocol + cloud and local implementations |
-| `local_clients/` | Async clients for the on-prem Speech containers and Foundry Local |
-| `connectivity.py` | Background supervisor that probes the cloud Voice Live endpoint |
-| `config.py` | Settings from environment variables |
-| `static/js/app.js` | Browser client — WebRTC, mic capture, audio playback, UI, mode badge |
-| `static/js/audio-processor.js` | AudioWorklet for 24 kHz PCM16 mic capture |
-| `templates/index.html` | Single-page UI (Jinja2 template) |
-| `static/css/style.css` | Dark-theme application styles |
-| `docker-compose.local.yml` | On-prem Speech STT + NTTS containers for the hybrid path |
-| `infra/` | **Bicep IaC for the Azure surface** — subscription-scope `main.bicep` + Foundry + RBAC modules + `deploy.ps1` wrapper |
-| `docs/` | Standard project docs (6-doc layout): orchestrator, architecture, prerequisites, deployment, testing, troubleshooting |
-| `docs/hybrid/` | Hybrid-path supplements: customer report, implementation plan, Azure-vs-on-prem responsibility, model selection |
+</details>
 
-## Prerequisites
+> [!WARNING]
+> **Never run a bare `az login` / `azd up`.** The Azure CLI and azd keep separate, drifting logins; the `preprovision` hook stops unless `az account show` matches `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID`. Already have a Foundry resource? Skip azd: copy `.env.example` to `.env`, set `AZURE_AI_ENDPOINT`, and grant yourself the two roles ([03b](./docs/03b-manual-deployment.md)).
+
+## Prerequisites snapshot
 
 | Requirement | Details |
 |---|---|
-| Python | 3.10+ |
-| Azure subscription | [Free account](https://azure.microsoft.com/free/) |
-| Microsoft Foundry resource | In a [supported region](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=ttsavatar) |
-| Azure CLI | For `az login` authentication |
-| RBAC roles | **Cognitive Services User** + **Azure AI User** on your Foundry resource |
+| Azure subscription | Owner, or Contributor + User Access Administrator, on the target scope |
+| Region | Tier 1: `eastus2`, `westus2`, `swedencentral`, `southeastasia`, `centralindia`, `eastus` (full feature set) — [02 § 1.3](./docs/02-prerequisites.md#13-regional-availability-matrix) |
+| Runtime roles | **Cognitive Services User** + **Foundry User** (formerly *Azure AI User*) on the Foundry resource |
+| Tools | Python 3.10+, Azure CLI 2.60+, Azure Developer CLI, PowerShell 7+, Chrome / Edge 120+ |
+| Hybrid only | Edge host with Docker; Foundry Local; Foundry resource key for container metering |
 
-## Support matrix
+## When to use this pattern
 
-This project depends on three Azure capabilities, each with its own regional footprint. **Your Foundry resource must be created in a region that supports every feature you plan to use.** Pick a region from the recommendations below based on which features you enable.
-
-### Feature → requirement
-
-| Feature in this app | Azure capability | Required? |
-|---|---|---|
-| Voice-only conversation | Voice Live API (built-in `gpt-realtime`) | Always |
-| Avatar video (Lisa, Harry, Max, Lori, Meg, etc.) | TTS Real-time Avatar | When **Enable Avatar** is on |
-| HD (Dragon) voices — e.g. `en-US-Ava:DragonHDLatestNeural` | Azure Neural HD voices | When selecting an `HD` voice |
-| Standard / Multilingual voices | Azure Neural TTS (broad coverage) | When selecting a non-HD voice |
-| BYOM (`byom-azure-openai-realtime`, `…-chat-completion`) | Azure OpenAI deployment in your Foundry resource | When `ENABLE_BYOM_MODE=true` |
-| BYOM (`byom-foundry-anthropic-messages`) | Anthropic model on Foundry (preview) | When using Claude via BYOM |
-| Weather tool | Open-Meteo (keyless, no region) | When `ENABLE_WEATHER_TOOL=true` |
-
-### Region × feature matrix
-
-✅ = supported · ❌ = not supported · ⚠️ = check docs (changes frequently)
-
-| Region | Voice Live API | TTS Avatar (real-time) | HD (Dragon) voices | Standard / Multilingual TTS |
-|---|:---:|:---:|:---:|:---:|
-| `eastus`           | ⚠️ | ❌ | ✅ | ✅ |
-| `eastus2`          | ✅ | ✅ | ✅ | ✅ |
-| `westus2`          | ✅ | ✅ | ✅ | ✅ |
-| `southcentralus`   | ⚠️ | ✅ | ❌ | ✅ |
-| `northeurope`      | ⚠️ | ✅ | ❌ | ✅ |
-| `westeurope`       | ✅ | ✅ | ✅ | ✅ |
-| `swedencentral`    | ✅ | ✅ | ✅ | ✅ |
-| `southeastasia`    | ✅ | ✅ | ✅ | ✅ |
-| `centralindia`     | ✅ | ❌ | ✅ | ✅ |
-| All other Speech regions | ❌ | ❌ | ❌ | ✅ |
-
-Sources (authoritative — verify before deploying):
-- [Azure Speech regions — Voice Live tab](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=voicelive)
-- [Azure Speech regions — TTS Avatar tab](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=ttsavatar)
-- [HD voice region availability](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts)
-- [Voice Live overview & supported models](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
-
-### Recommended deployments
-
-| Scenario | Recommended regions | Why |
-|---|---|---|
-| **Full featured** (avatar + HD voices + Voice Live) | `eastus2`, `westus2`, `westeurope`, `swedencentral`, `southeastasia` | Only regions that support all three at once |
-| **Voice-only, HD voices** | Any of the above, plus `eastus`, `centralindia` | HD voices without avatar |
-| **Voice-only, no HD** | Any Voice Live region | Lowest cost / broadest availability |
-| **EU data residency** | `westeurope`, `swedencentral`, `northeurope` | Data stays in EU geography |
-| **APAC** | `southeastasia` | Only APAC region with full feature parity |
-
-> Data residency: Azure Speech doesn't process or store your audio outside the region of your Foundry resource — pick a region that matches your compliance needs.
-
-## Quick Start
-
-> **First time deploying this demo?** Follow the full step-by-step guide in
-> **[`docs/00-reproduce-this-demo.md`](./docs/00-reproduce-this-demo.md)** — it
-> covers prerequisites, provisioning the Azure Foundry resource with `az`,
-> RBAC, validation tests at each step, and the optional hybrid on-prem
-> fallback path. The phased deployment reference lives in
-> [`docs/03-deployment.md`](./docs/03-deployment.md). The condensed version
-> below assumes you already have a Foundry resource and tools installed.
-
-```bash
-# Clone and install
-git clone <your-repo-url>
-cd ai-voice-live-avatar
-python -m venv venv
-source venv/bin/activate      # macOS/Linux
-# venv\Scripts\activate       # Windows
-pip install -r requirements.txt
-
-# Configure
-cp .env.example .env
-# Edit .env with your endpoint
-
-# Authenticate
-az login
-
-# Run
-python app.py
-```
-
-Open **http://localhost:8000** in Chrome or Edge.
-
-## Configuration
-
-Edit `.env` (copy from `.env.example`):
-
-```env
-# Required
-AZURE_AI_ENDPOINT=https://your-resource.services.ai.azure.com
-
-# Model served by Voice Live (default: gpt-realtime)
-VOICE_LIVE_MODEL=gpt-realtime
-
-# Server port (default: 8000)
-PORT=8000
-```
-
-### Optional: Bring Your Own Model (BYOM)
-
-Use a custom model deployment from your Foundry resource instead of the built-in `VOICE_LIVE_MODEL`.
-See the [BYOM docs](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-bring-your-own-model) for full details.
-
-```env
-ENABLE_BYOM_MODE=true
-# Profile — pick one to match your deployment type:
-#   byom-azure-openai-realtime         (e.g. gpt-realtime, gpt-realtime-mini)
-#   byom-azure-openai-chat-completion  (e.g. gpt-5, gpt-4.1, model router)
-#   byom-foundry-anthropic-messages    (e.g. claude-sonnet-4.6) — preview
-VOICE_BYOM_MODE=byom-azure-openai-realtime
-
-# Deployment NAME from the Foundry portal (not the underlying model id)
-VOICE_BYOM_MODEL=my-gpt-realtime-deployment
-
-# Optional: target a deployment in a DIFFERENT Foundry resource.
-# Resource name only — no domain. e.g. "my-other-foundry"
-VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE=
-```
-
-When BYOM is enabled, `VOICE_BYOM_MODEL` becomes the `model` query param and `VOICE_LIVE_MODEL` is ignored. The connection URL gets `profile=<VOICE_BYOM_MODE>` (and optionally `foundry-resource-override=<...>`) appended.
-
-**Cross-resource note:** if you set `VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE`, the Voice Live Foundry resource needs its system-assigned managed identity granted the **Foundry User** role on the *model's* Foundry resource. See the docs above for the exact `az` commands.
-
-### Optional: Weather tool
-
-Set `ENABLE_WEATHER_TOOL=true` to expose a `get_weather` function the model can call. Uses the browser's geolocation when the user says "near me".
-
-### Optional: Hybrid local fallback (preview)
-
-When sites have intermittent internet, the app can automatically fall back to a
-fully on-prem pipeline (Speech containers + Foundry Local) on a per-session basis.
-Cloud is always preferred when reachable; local mode is voice-only (no avatar,
-no HD voices) and is signalled to the user with an orange `LOCAL` badge.
-
-```env
-ENABLE_LOCAL_FALLBACK=true
-LOCAL_STT_ENDPOINT=http://localhost:5001
-LOCAL_TTS_ENDPOINT=http://localhost:5002
-LOCAL_TTS_VOICE=en-US-JennyNeural
-LOCAL_LLM_ENDPOINT=http://localhost:5273/v1
-LOCAL_LLM_MODEL=qwen2.5-7b-instruct
-```
-
-Full reference and on-prem setup steps live in the standard project docs
-(see [`docs/`](./docs/)). The hybrid-specific supplements live in
-[`docs/hybrid/`](./docs/hybrid/):
-
-| Doc | Purpose |
+| Use this pattern when | Use something else when |
 |---|---|
-| [`docs/00-reproduce-this-demo.md`](./docs/00-reproduce-this-demo.md) | **Single-page orchestrator** — start here for first-time stand-up |
-| [`docs/01-architecture.md`](./docs/01-architecture.md) | Full app architecture (cloud + hybrid), Mermaid diagram, locked decisions |
-| [`docs/02-prerequisites.md`](./docs/02-prerequisites.md) | Azure + on-prem prerequisites, regional matrix, cost estimate, pre-flight checklist |
-| [`docs/03-deployment.md`](./docs/03-deployment.md) | Phased deployment with validation gates (Phase 1–5) |
-| [`docs/04-testing.md`](./docs/04-testing.md) | Functional tests + hybrid matrix + demo script + performance baselines |
-| [`docs/05-troubleshooting.md`](./docs/05-troubleshooting.md) | Quick-triage table + per-symptom diagnosis + escalation |
-| [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) | Comparative report — three approaches, what stays in Azure, decision checklist |
-| [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) | MVP scope, file map, milestones, out-of-scope items |
-| [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) | Per-component responsibility matrix, network egress rules, data-flow diagrams |
-| [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) | Voice Live model list (`gpt-realtime`, `gpt-realtime-2`, `gpt-realtime-1.5`, `…-mini`), BYOM profiles, local LLM substitutes, parity table |
+| You want a production-style real-time voice + avatar experience on Voice Live | You need knowledge-base / RAG answers over a document corpus → a RAG knowledge-base pattern |
+| You need a working reference for Voice Live + avatar + neural voices in one FastAPI + browser pair | You need multi-agent orchestration → add Foundry Agent Service above this app |
+| You want BYOM wired up without writing the connection plumbing | You need a **fully air-gapped** avatar experience — no on-prem avatar or realtime model exists |
+| Sites have intermittent internet and need graceful, voice-only degradation | You want to compare Voice Live with the Realtime API → a dedicated comparison pattern |
 
-## Usage
+> [!TIP]
+> The pattern is domain-neutral: the assistant's persona, greeting language and tools live in `SYSTEM_PROMPT` (`config.py`) and `.env`. Retargeting it to another scenario is a configuration change — see [01 § Adapting this pattern](./docs/01-architecture.md#adapting-this-pattern-to-another-scenario).
 
-1. Select avatar character, style, and voice in the sidebar
-2. Toggle **Enable Avatar** on/off (off = voice-only mode for faster testing)
-3. Click **Start Avatar** to connect
-4. Type a message or click the mic to speak
-5. The AI responds through the avatar (or audio only)
+## File index
 
-## When to use this app
-
-### Use this app when
-
-- You want a production-style real-time voice + avatar experience built on Azure AI Voice Live and the `gpt-realtime` family.
-- You need a working reference for the Voice Live + TTS Avatar + neural-voice integration in a single FastAPI + browser pair.
-- You want BYOM (private / fine-tuned Azure OpenAI realtime or chat-completion deployments) wired up without writing the connection plumbing yourself.
-- You have sites with intermittent internet and need a **graceful degradation** path — the hybrid local-fallback mode delivers a voice-only conversation on-prem using Azure Speech containers + Foundry Local when the cloud is unreachable.
-
-### Use a different pattern when
-
-- You need a **knowledge-base / RAG** experience over a document corpus → use the low-code RAG knowledge-base pattern (Copilot Studio + Azure AI Search) instead.
-- You need **multi-agent orchestration or custom tool-calling logic** beyond a single function tool → add Foundry Agent Service as an orchestration layer above this app, or use a different pattern entirely.
-- You need a **fully air-gapped** experience with zero cloud dependency. Voice Live, the TTS Avatar, the `gpt-realtime` family, and HD voices are all Azure-only — no on-prem equivalent exists. The hybrid mode degrades gracefully but is not the same UX.
-
-## Troubleshooting
-
-A short list — the full quick-triage table + per-symptom diagnoses live in
-[`docs/05-troubleshooting.md`](./docs/05-troubleshooting.md).
-
-| Issue | Solution |
+| Path | Purpose |
 |---|---|
-| Session error on connect | Check `AZURE_AI_ENDPOINT` in `.env`; run `az login` |
-| Avatar fails, voice works | Ensure region supports TTS avatar; try voice-only first |
-| No audio/video | Allow mic/camera in browser; use Chrome or Edge |
-| Stale JS behavior | Hard refresh (Ctrl+Shift+R) — no-cache middleware should handle this |
-| BYOM connect fails | Verify `VOICE_BYOM_MODEL` matches a real **deployment name** in the Foundry portal, and that the deployment's profile matches `VOICE_BYOM_MODE` |
-| BYOM 401/403 with override | When using `VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE`, grant the Voice Live resource's managed identity **Foundry User** on the model resource |
+| `app.py` | FastAPI server, WebSocket router, per-session hybrid routing, `/api/*` endpoints |
+| `session_handlers/` | `SessionHandler` protocol + cloud (`cloud.py`) and local (`local.py`) handlers |
+| `local_clients/` | Async clients for the Speech containers and Foundry Local |
+| `connectivity.py` · `config.py` · `voice_handler.py` | Cloud reachability supervisor · settings from the environment · back-compat shim |
+| `static/` · `templates/` | Browser client (WebRTC, AudioWorklet, UI) and the single-page template |
+| `docker-compose.local.yml` | On-prem Speech STT + neural TTS containers (hybrid path) |
+| `azure.yaml` · `infra/` | azd template (`azd.bicep`, `azd.parameters.json`, `hooks/`) over the shared `main.bicep` + modules + `deploy.ps1` |
+| `docs/` | **All narrative docs** (00–07) plus `docs/hybrid/` supplements and `docs/assets/` (diagrams, icons, badges) |
+| `scripts/` · `tests/` · `.github/workflows/validate.yml` | `export_diagrams.py`, `lint_doc_visuals.py`, `make_badges.py` · doc, configuration and azd guard tests · static CI (tests, strict lint, Bicep compile) |
+| `demo-ids.template.json` | Shape of the gitignored `demo-ids.local.json` written after a deployment |
+
+| Doc | What it answers |
+|---|---|
+| [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md) | One continuous walkthrough, parts A–F with checkpoints |
+| [01 — Architecture](./docs/01-architecture.md) | Layers, request path, modes, trust boundaries, locked decisions |
+| [02 — Prerequisites](./docs/02-prerequisites.md) | Roles, regions × features, cost model, hybrid hardware, pre-flight |
+| [03 — Deployment](./docs/03-deployment.md) · [03b — Manual](./docs/03b-manual-deployment.md) | azd / script / portal paths with validation gates |
+| [04 — Testing](./docs/04-testing.md) · [05 — Troubleshooting](./docs/05-troubleshooting.md) | Test matrix + demo script · triage table and fixes |
+| [06 — Hybrid local fallback](./docs/06-hybrid-local-fallback.md) · [07 — Configuration](./docs/07-configuration-reference.md) | The on-prem path end to end · every setting in one page |
+
+## Distribution
+
+This repo is designed to be pushed to GitHub or Azure DevOps as-is:
+
+| Rule | How it's enforced |
+|---|---|
+| No secrets, keys or populated IDs in git | `.gitignore` excludes `.env`, `.env.*` (except `.env.example`), `.azure/`, `demo-ids.local.json`, `*.local.json`, `*.pem`, `*.key` |
+| Runtime values come from the environment | The app reads `.env` / process environment; pipelines use variable groups or Key Vault, never `demo-ids.*.json` |
+| IDs after a deployment | `demo-ids.local.json` (gitignored) is written by the `postprovision` hook or `deploy.ps1`; `demo-ids.template.json` documents its shape |
+| Docs stay shareable | `python scripts/lint_doc_visuals.py --strict` and `tests/` run before every publish |
+
+> [!CAUTION]
+> The Foundry resource key is only needed by the optional Speech containers (`SPEECH_API_KEY`). Keep it in a site secret store or a `.env` next to `docker-compose.local.yml` with restricted permissions — never in git, never in docs.
 
 ## Decision provenance
 
 | Decision area | Where it's recorded |
 |---|---|
-| Cloud orchestrator = Voice Live; model = `gpt-realtime` family | [`docs/01-architecture.md` §Locked design decisions](./docs/01-architecture.md#locked-design-decisions) |
-| Hybrid Approach A (cloud-primary + voice-only fallback) chosen over Approaches B (local-first) and C (tools-only) | [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) |
-| MVP engineering scope + explicit out-of-scope items | [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) |
-| Per-component Azure-vs-on-prem split (what must stay Azure, what can move) | [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) |
-| Voice Live model choice + BYOM profile guidance + local LLM substitutes | [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) |
+| Voice Live as the single cloud orchestrator; `gpt-realtime-2.1` default (moved from `gpt-realtime` in v1.1.0 because the 2025-08-28 version retires 2027-03-02) | [01 § Locked design decisions](./docs/01-architecture.md#locked-design-decisions) · [`CHANGELOG.md`](./CHANGELOG.md) |
+| Hybrid Approach A (cloud-primary + voice-only fallback) over B (local-first) and C (tools-only) | [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) |
+| MVP engineering scope and out-of-scope items | [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) |
+| What must stay in Azure vs. what can move on-prem | [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) |
+| Model choice, BYOM profiles, local LLM substitutes | [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) |
+| Engagement-specific context (originating engagement, stakeholders) | Kept in the owner's private engagement notes, not in this repo |
 
 ## License
 
-MIT
+| License | Scope |
+|---|---|
+| MIT | Code and docs in this repo. Microsoft product icons in `docs/assets/icons/` follow the [Azure architecture icon terms](./docs/assets/icons/README.md). |
 
 ---
 
-*Last updated: 2026-06-04*
+Next: [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md) →
+
+*Last updated: 2026-10-07*

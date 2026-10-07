@@ -7,25 +7,30 @@
 //   2. A Microsoft Foundry resource (kind=AIServices, S0, custom-domain,
 //      system-assigned managed identity)
 //   3. Role assignments granting a target principal the two RBAC roles the
-//      app needs at runtime (Cognitive Services User + Azure AI User)
+//      app needs at runtime (Cognitive Services User + Foundry User, formerly
+//      named Azure AI User)
 //
-// Authoritative deployment guide: docs/03-deployment.md Phase 1.
-// Manual fallback (if you'd rather click through `az` commands): same doc.
+// Authoritative deployment guide: docs/03-deployment.md (azd fast path + script path).
+// Manual fallback (portal / az CLI): docs/03b-manual-deployment.md.
+// azd entry point: infra/azd.bicep wraps this file at subscription scope.
 // =============================================================================
 
 targetScope = 'subscription'
 
-@description('Azure region for the resource group and the Foundry resource. Must support Voice Live, TTS Avatar, and HD voices for the full feature set — see docs/02-prerequisites.md §1.3.')
+@description('Azure region for the resource group and the Foundry resource. Tier 1 (gpt-realtime-2.1 + real-time avatar + HD voices): eastus2, westus2, swedencentral, southeastasia, centralindia, eastus. The rest support a subset — see docs/02-prerequisites.md §1.3 (snapshot 2026-10-07).')
 @allowed([
   'eastus2'
   'westus2'
-  'westeurope'
   'swedencentral'
   'southeastasia'
-  'eastus'
   'centralindia'
-  'northeurope'
+  'eastus'
+  'francecentral'
+  'canadacentral'
+  'westeurope'
   'southcentralus'
+  'uksouth'
+  'australiaeast'
 ])
 param location string = 'eastus2'
 
@@ -54,7 +59,7 @@ param foundryNameOverride string = ''
 ])
 param foundrySku string = 'S0'
 
-@description('Object IDs of users / service principals / managed identities that should receive Cognitive Services User + Azure AI User on the Foundry resource. Leave empty to skip role assignments (e.g. when you will use az CLI to add them manually).')
+@description('Object IDs of users / service principals / managed identities that should receive Cognitive Services User + Foundry User on the Foundry resource. Leave empty to skip role assignments (e.g. when you will use az CLI to add them manually).')
 param appPrincipalObjectIds array = []
 
 @description('Principal type for entries in `appPrincipalObjectIds` — all entries must be the same type per Bicep deployment. Common values: User, ServicePrincipal, Group.')

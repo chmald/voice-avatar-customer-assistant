@@ -1,241 +1,226 @@
+[README](../README.md) › [docs index](./00-reproduce-this-demo.md) › 02 Prerequisites
+
 # 02 — Prerequisites
 
-> What you need before standing up the demo. The cloud path (always required)
-> is in §1. The optional on-prem fallback adds the items in §2.
->
-> Pre-flight checklist is at the bottom — verify every box before starting
-> [`03-deployment.md`](./03-deployment.md).
+<p>
+<img src="./assets/icons/subscription.svg" width="40" alt="Azure subscription"/>&nbsp;
+<img src="./assets/icons/entra-roles.svg" width="40" alt="Entra roles"/>&nbsp;
+<img src="./assets/icons/foundry.svg" width="40" alt="Microsoft Foundry"/>&nbsp;
+<img src="./assets/icons/foundry-models.svg" width="40" alt="Foundry Models"/>&nbsp;
+<img src="./assets/icons/users.svg" width="40" alt="Real-time avatar"/>&nbsp;
+<img src="./assets/icons/speech.svg" width="40" alt="Speech containers"/>&nbsp;
+<img src="./assets/icons/dev-console.svg" width="40" alt="Workstation tooling"/>
+</p>
 
----
+![GA](./assets/badges/ga.svg) ![Opt-in](./assets/badges/opt-in.svg) ![Tier-1 regions](./assets/badges/tier1.svg) ![Default model](./assets/badges/default-model.svg)
+
+Everything that must be in place before you deploy: subscription and roles, a region that has every feature you plan to show, the cost model, workstation tooling and — only for the hybrid path — an edge host. Section 1 is always required; section 2 adds the optional on-prem fallback. The pre-flight checklist at the end is the go / no-go for [03 — Deployment](./03-deployment.md).
+
+## At a glance
+
+| | Topic | One-line answer |
+|---|---|---|
+| <img src="./assets/icons/entra-roles.svg" width="24" alt="Roles"/> | **Deployer roles** | Owner, or Contributor + User Access Administrator, on the subscription (or target resource group) |
+| <img src="./assets/icons/entra-roles.svg" width="24" alt="Roles"/> | **Runtime roles** | **Cognitive Services User** + **Foundry User** (formerly *Azure AI User*) on the Foundry resource |
+| <img src="./assets/icons/foundry.svg" width="24" alt="Region"/> | **Region** | Tier 1 = `eastus2`, `westus2`, `swedencentral`, `southeastasia`, `centralindia`, `eastus` |
+| <img src="./assets/icons/foundry-models.svg" width="24" alt="Model"/> | **Model** | `gpt-realtime-2.1` is built into Voice Live — no model deployment needed ![GA](./assets/badges/ga.svg) |
+| <img src="./assets/icons/speech.svg" width="24" alt="Edge"/> | **Hybrid** | 16 vCPU / 32 GB edge host minimum, GPU recommended, Docker, Foundry Local ![Opt-in](./assets/badges/opt-in.svg) |
+
+## Prerequisites map
+
+[![Prerequisites map: subscription and access, region and models, workstation tooling, hybrid edge host](./assets/prerequisites-map.png)](./assets/prerequisites-map.png)
+
+<sub>Editable source: [`assets/prerequisites-map.drawio`](./assets/prerequisites-map.drawio) — regenerate with `python scripts/export_diagrams.py docs/assets`.</sub>
 
 ## 1. Always required — cloud path
 
 ### 1.1 Azure
 
-| Item | Notes |
+| Resource | Notes |
 |---|---|
-| **Azure subscription** | With **Contributor** + **User Access Administrator** on the target resource group (or subscription scope for greenfield). |
-| **Microsoft Foundry resource** (`kind=AIServices`) | The unified multi-service Cognitive Services account. Hosts Voice Live, TTS Avatar, neural voices, and (optionally) BYOM model deployments under one endpoint. |
-| **Regional alignment** | Foundry resource must be in a region that supports every cloud feature you plan to enable — see [§1.3](#13-regional-availability-matrix). |
-| **RBAC** | App identity needs **Cognitive Services User** + **Azure AI User** on the Foundry resource. |
-| **Voice Live model access** | Built-in models (`gpt-realtime` family) are served by Voice Live with no separate deployment. For BYOM (`byom-azure-openai-realtime`, `…-chat-completion`, `…-foundry-anthropic-messages`) you need a deployment in the Foundry resource. |
+| <img src="./assets/icons/subscription.svg" width="20" alt=""/> **Azure subscription** | Deployer needs **Owner**, or **Contributor** + **User Access Administrator** (the Bicep creates role assignments) |
+| <img src="./assets/icons/foundry.svg" width="20" alt=""/> **Microsoft Foundry resource** (`kind=AIServices`, S0) | Hosts Voice Live, the real-time avatar, neural voices and optional BYOM deployments under one custom-domain endpoint `https://<name>.services.ai.azure.com` |
+| <img src="./assets/icons/foundry.svg" width="20" alt=""/> **Region** | Must offer every feature you plan to show — see [§1.3](#13-regional-availability-matrix) |
+| <img src="./assets/icons/entra-roles.svg" width="20" alt=""/> **Runtime RBAC** | App identity needs **Cognitive Services User** + **Foundry User** on the Foundry resource. Microsoft renamed *Azure AI User* to *Foundry User*; the role ID `53ca6127-db72-4b80-b1b0-d745d6d5456d` is unchanged, so prefer the ID in scripts |
+| <img src="./assets/icons/foundry-models.svg" width="20" alt=""/> **Voice Live model** | Built-in models are fully managed (no deployment, no capacity planning). BYOM needs a deployment in a Foundry resource |
+| <img src="./assets/icons/managed-identity.svg" width="20" alt=""/> **Resource identity** (BYOM) | For `byom-azure-openai-chat-completion`, `byom-foundry-anthropic-messages` or a cross-resource override, the Foundry resource's system-assigned identity needs **Foundry User** on the model's resource ([BYOM authentication](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-bring-your-own-model)) |
 
 ### 1.2 Local developer tooling
 
 | Tool | Minimum | Install |
 |---|---|---|
-| **Python** | 3.10+ | `winget install Python.Python.3.12` / `brew install python@3.12` / apt |
-| **Azure CLI** | 2.60+ | `winget install Microsoft.AzureCLI` / `brew install azure-cli` / [InstallAzureCLIDeb](https://aka.ms/InstallAzureCLIDeb) |
-| **Git** | any recent | `winget install Git.Git` / `brew install git` / apt |
-| **PowerShell** | 7+ (`pwsh`) | Built into Windows. macOS: `brew install --cask powershell`. Linux: `sudo snap install powershell --classic`. |
-| **Browser** | Chrome 120+ or Edge 120+ | WebRTC + AudioWorklet path. Not tested on Firefox or Safari. |
+| <img src="./assets/icons/dev-console.svg" width="20" alt=""/> **Python** | 3.10+ | `winget install Python.Python.3.12` / `brew install python@3.12` / apt |
+| <img src="./assets/icons/dev-console.svg" width="20" alt=""/> **Azure CLI** | 2.60+ | `winget install Microsoft.AzureCLI` / `brew install azure-cli` / [InstallAzureCLIDeb](https://aka.ms/InstallAzureCLIDeb) |
+| <img src="./assets/icons/dev-console.svg" width="20" alt=""/> **Azure Developer CLI** | current | `winget install Microsoft.Azd` / `brew install azd` — only for the `azd up` path |
+| <img src="./assets/icons/commit.svg" width="20" alt=""/> **Git** | any recent | `winget install Git.Git` / `brew install git` / apt |
+| <img src="./assets/icons/powershell.svg" width="20" alt=""/> **PowerShell** | 7+ (`pwsh`) | Windows: `winget install Microsoft.PowerShell`; macOS: `brew install --cask powershell`; Linux: `sudo snap install powershell --classic` |
+| <img src="./assets/icons/code.svg" width="20" alt=""/> **Browser** | Chrome 120+ or Edge 120+ | WebRTC + AudioWorklet; not tested on Firefox or Safari |
 
-> **Shell convention.** Every shell snippet in `docs/` is PowerShell (`pwsh`).
-> They work cross-platform on `pwsh` 7+. To translate to `bash`, convert
-> `$VAR = "value"` → `VAR=value` and backtick `` ` `` → `\`.
+> [!NOTE]
+> **Shell convention.** Every snippet in `docs/` is PowerShell 7 (`pwsh`) and runs on Windows, macOS and Linux. To translate to bash, turn `$VAR = "value"` into `VAR=value` and the backtick line continuation into `\`.
 
 ### 1.3 Regional availability matrix
 
-Each cloud capability we use has its own regional footprint. The Foundry resource must be in a region that supports **every** feature you plan to enable.
+[![Regions, models and dates that shape a deployment: infographic](./assets/region-availability-infographic.png)](./assets/region-availability-infographic.png)
 
-✅ supported · ❌ not supported · ⚠️ check Microsoft Learn (changes frequently)
+<sub>Editable source: [`assets/region-availability-infographic.drawio`](./assets/region-availability-infographic.drawio).</sub>
 
-| Region | Voice Live API | TTS Avatar (real-time) | HD (Dragon) voices | Standard / Multilingual TTS |
-|---|:---:|:---:|:---:|:---:|
-| `eastus`           | ⚠️ | ❌ | ✅ | ✅ |
-| `eastus2`          | ✅ | ✅ | ✅ | ✅ |
-| `westus2`          | ✅ | ✅ | ✅ | ✅ |
-| `southcentralus`   | ⚠️ | ✅ | ❌ | ✅ |
-| `northeurope`      | ⚠️ | ✅ | ❌ | ✅ |
-| `westeurope`       | ✅ | ✅ | ✅ | ✅ |
-| `swedencentral`    | ✅ | ✅ | ✅ | ✅ |
-| `southeastasia`    | ✅ | ✅ | ✅ | ✅ |
-| `centralindia`     | ✅ | ❌ | ✅ | ✅ |
-| All other Speech regions | ❌ | ❌ | ❌ | ✅ |
+The Foundry resource must sit in a region that offers **every** feature you enable. Snapshot from Microsoft Learn on **2026-10-07** (resource region; ✅ available · ⚠️ limited · ❌ not available):
 
-> Sources (verify before deploying):
-> [Speech regions — Voice Live](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=voicelive),
-> [Speech regions — TTS Avatar](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=ttsavatar),
-> [HD voice availability](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts),
-> [Voice Live model availability](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live).
+| Region | `gpt-realtime-2.1` | `gpt-realtime` | Real-time avatar | HD voices | Tier |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `eastus2` | ✅ | ✅ | ✅ | ✅ | 1 |
+| `westus2` | ✅ | ✅ | ✅ | ✅ | 1 |
+| `swedencentral` | ✅ | ✅ | ✅ | ✅ | 1 |
+| `southeastasia` | ✅ | ✅ | ✅ | ✅ | 1 |
+| `centralindia` | ✅ | ✅ | ✅ | ✅ | 1 |
+| `eastus` | ✅ | ❌ | ✅ | ✅ | 1 |
+| `francecentral` | ✅ | ✅ | ⚠️ limited capacity | ✅ | 2 |
+| `southcentralus` | ⚠️ `-datazone` only | ❌ | ✅ | ❌ | 2 |
+| `canadacentral` | ✅ | ✅ | ❌ | ✅ | 2 |
+| `westeurope` | ❌ | ❌ | ✅ | ✅ | 3 |
+| `uksouth`, `australiaeast` | ✅ | ✅ | ❌ | ❌ | 3 |
+| `northeurope`, `italynorth` | ❌ (no realtime models) | ❌ | ✅ | ❌ | — |
+
+Sources (verify before deploying): [Speech regions — Voice Live](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=voice-live), [Text to speech avatar](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=ttsavatar), [Text to speech (HD voices)](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=tts), [Voice Live supported models](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#supported-models-and-regions).
 
 #### Tiered recommendation
 
 | Tier | Regions | Use when |
 |---|---|---|
-| **Tier 1 (recommended)** | `eastus2`, `westus2`, `westeurope`, `swedencentral`, `southeastasia` | You want full feature parity (avatar + HD + Voice Live). Default for new deployments. |
-| **Tier 2 (acceptable)** | `eastus`, `centralindia` | Voice-only with HD voices acceptable; no avatar. |
-| **Tier 3 (workarounds)** | Any other Voice Live region | Voice-only with standard neural voices. No HD, no avatar. |
+| **Tier 1 (recommended)** | `eastus2`, `westus2`, `swedencentral`, `southeastasia`, `centralindia`, `eastus` | Full feature parity with the default model: avatar + HD voices + `gpt-realtime-2.1`. `eastus2` is the default |
+| **Tier 2 (acceptable)** | `francecentral` (avatar capacity limited), `southcentralus` (avatar + `gpt-realtime-2.1-datazone`, Standard voices), `canadacentral` (no avatar) | A specific geography is required and one feature can be dropped |
+| **Tier 3 (workarounds)** | `westeurope` (avatar + HD with a non-realtime model such as `gpt-4.1` or `gpt-5.x`), `uksouth`, `australiaeast` (voice-only, Standard voices) | Residency forces the region; expect a different latency / feature profile |
 
-Run the verify-at-deployment-time CLI snippet from [`03-deployment.md` Phase 1.5](./03-deployment.md#15-verify-region-supports-your-feature-set) before provisioning to confirm the matrix above is still accurate for your tenant.
+> [!WARNING]
+> Region support changes often, and Voice Live's model **inference scope** (global, data zone, regional) is separate from the resource region. Re-run the [verify-at-deployment-time snippets](#3-verify-at-deployment-time-cli-snippets) on the day you deploy. `northeurope` was supported by v1.0 of this pattern but has no Voice Live models today and was removed from the Bicep allow-list.
 
-### 1.4 Cost estimate (order-of-magnitude)
+### 1.4 Cost model
 
-Per concurrent session, in cloud mode, at typical demo / pilot workloads:
+Voice Live is billed per token at the tier of the model you choose — you don't pick a tier ([Voice Live pricing](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#pricing)):
 
-| Component | Charging model | Rough rate |
+| Component | Charging model | Notes |
 |---|---|---|
-| Voice Live API | Per minute of audio | $0.20–0.40 / min depending on tier (verify with the [Speech service pricing page](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/)) |
-| Avatar (real-time) | Per minute of video | $0.50–1.00 / min |
-| HD voices | Included with Voice Live when used inline | n/a |
-| BYOM Azure OpenAI deployment (if used) | Per TPM / PTU on the deployment | Customer's existing AOAI billing applies |
+| <img src="./assets/icons/foundry-models.svg" width="20" alt=""/> Voice Live with `gpt-realtime-2.1` / `gpt-realtime` / `-1.5` | **Pro** tier, per text + audio token | About 10 input / 20 output audio tokens per second for Azure OpenAI models |
+| <img src="./assets/icons/foundry-models.svg" width="20" alt=""/> Voice Live with `gpt-realtime-2.1-mini` / `gpt-realtime-mini` | **Standard** tier | Cheaper; check quality for your scenario |
+| <img src="./assets/icons/users.svg" width="20" alt=""/> Real-time avatar (standard) | Billed separately from Voice Live | Custom avatars add training + hosting charges and need approval |
+| <img src="./assets/icons/speech.svg" width="20" alt=""/> Custom voice (if used) | Training + hosting billed separately | Limited access; intake form required |
+| <img src="./assets/icons/azure-openai.svg" width="20" alt=""/> BYOM deployment | Your deployment's own billing (Standard / PTU) | Voice Live charges still apply to the session |
+| <img src="./assets/icons/speech.svg" width="20" alt=""/> Speech containers (hybrid) | Connected: metered on the Foundry resource; disconnected: commitment tier | Disconnected needs approval |
 
-For accurate quotes, use the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) or invoke the pricing skill that produced the Demos exemplars.
-
----
+For a quote, use the [Speech pricing page](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/) and the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/); v1.0's per-minute estimates were removed because Voice Live is token-priced.
 
 ## 2. Optional — on-prem hybrid fallback path
 
-Skip this section if you only need cloud mode.
+Skip this section if you only need cloud mode. The full on-prem story is in [06 — Hybrid local fallback](./06-hybrid-local-fallback.md).
 
 ### 2.1 Edge host hardware (per site)
 
-Minimum (single concurrent session, no GPU):
+| Spec | Minimum (1 session, no GPU) | Recommended (1–3 sessions) |
+|---|---|---|
+| CPU | 16 vCPU | 24 vCPU |
+| RAM | 32 GB | 64 GB |
+| Disk | 200 GB SSD | 500 GB SSD |
+| GPU | none (LLM on CPU; first token takes seconds) | NVIDIA, 16+ GB VRAM (for example RTX 4080, L4, A10) |
+| OS | Linux x64 (Ubuntu 22.04+, Debian 12+, RHEL 9+) or Windows 11 / Server 2025 | same |
+| Container runtime | Docker Engine 24+ or Podman 4+, Docker Compose v2 | same |
 
-| Resource | Minimum |
+Why: the STT container needs about 4 vCPU / 4 GB, each neural TTS voice image about 6 vCPU / 12 GB, a 7B-class model on Foundry Local wants a GPU, plus headroom for the app and the OS.
+
+### 2.2 Azure-side prerequisites for the containers
+
+| Resource | Notes |
 |---|---|
-| CPU | 16 vCPU |
-| RAM | 32 GB |
-| Disk | 200 GB SSD |
-| GPU | none (LLM on CPU — first-token latency several seconds) |
-| OS | Linux x64 (Ubuntu 22.04 LTS+, Debian 12+, RHEL 9+) or Windows 11 / Server 2025 for Foundry Local |
-| Docker | Engine 24+ or Podman 4+, with Docker Compose v2 |
-
-Recommended (1–3 concurrent voice sessions, snappy responses):
-
-| Resource | Recommended |
-|---|---|
-| CPU | 24 vCPU |
-| RAM | 64 GB |
-| Disk | 500 GB SSD |
-| GPU | NVIDIA, 16+ GB VRAM (e.g. RTX 4080, L4, A10) — for 7B-class LLM at chat-quality latency |
-
-#### Why these numbers
-
-- STT container: ≈ 4 vCPU / 4 GB RAM per Microsoft's container recommendation.
-- NTTS container: ≈ 6 vCPU / 12 GB RAM **per voice tag** (each voice = one image).
-- Foundry Local 7B-class model: GPU strongly preferred (CPU works, just slow).
-- Headroom for the FastAPI app + OS + logging.
-
-### 2.2 Azure-side prerequisites (on-prem still needs these)
-
-| Item | Notes |
-|---|---|
-| **Speech SKU on Foundry resource** | Standard S0. Required for Speech container metering. |
-| **Foundry resource key** | KEY1 or KEY2 from the Foundry portal → *Keys and Endpoint*. Passed to containers as `ApiKey=...`. Rotate via the portal. |
-| **Disconnected-containers approval** *(only if running offline)* | Submit <https://aka.ms/csdisconnectedcontainers>. Typical review SLA ≈ 10 business days. Requires a **commitment-tier** SKU purchase. |
+| <img src="./assets/icons/foundry.svg" width="20" alt=""/> **Foundry resource, S0** | Speech container metering bills to it |
+| <img src="./assets/icons/keys.svg" width="20" alt=""/> **Foundry resource key** | KEY1 / KEY2 from **Keys and Endpoint**, passed to the containers as `ApiKey`. Rotate in the portal |
+| <img src="./assets/icons/keys.svg" width="20" alt=""/> **Disconnected approval** (offline sites only) | Apply at <https://aka.ms/csdisconnectedcontainers>; requires a commitment-tier purchase |
 
 ### 2.3 Network requirements
 
-#### Connected mode (default)
-
 | Outbound HTTPS to | Why |
 |---|---|
-| `*.cognitiveservices.azure.com` | Speech container metering + Voice Live optional REST surfaces |
 | `*.services.ai.azure.com` | Voice Live WebSocket (cloud mode) |
-| `login.microsoftonline.com` | Entra ID tokens for `DefaultAzureCredential` and container metering |
-| `mcr.microsoft.com` | Image pulls + updates |
-| `huggingface.co` or `*.foundry.microsoft.com` | First-time model download for Foundry Local |
+| `*.cognitiveservices.azure.com` | Speech container metering; legacy Voice Live endpoint |
+| `login.microsoftonline.com` | Entra ID tokens for `DefaultAzureCredential` |
+| `mcr.microsoft.com` | Container image pulls and updates |
+| Foundry Local model catalog | First model download (then fully offline) |
 
-#### Disconnected mode (offline-tolerant)
-
-After initial image pulls + license download:
-- Containers run fully offline. License file refresh ≈ every 30 days.
-- Foundry Local: fully offline after first model download.
-- Cloud-mode sessions still need the URLs above; only the **local-fallback path** runs with zero internet.
+Disconnected mode: after the image pulls and license download, the containers run offline and the license is refreshed about every 30 days; Foundry Local is offline after its first download. Cloud-mode sessions still need the URLs above — only the **local fallback** runs with zero internet.
 
 ### 2.4 Identity and secrets
 
 | Secret | Lives where | Used by |
 |---|---|---|
-| Foundry resource key | Site-local secrets manager / Docker secrets / `.env` (0600 perms) | Speech containers — `ApiKey=...` env var |
-| Entra token | Acquired on demand by `DefaultAzureCredential`; cached in process | App for cloud Voice Live calls |
-| Foundry Local | n/a (no auth) | Bind to loopback or to a LAN interface behind a firewall |
-| Speech disconnected license file | `/license` bind mount on the host | Speech containers (offline metering) |
-
----
+| Foundry resource key | Site secret store / Docker secrets / a `.env` next to `docker-compose.local.yml` (0600) | Speech containers (`ApiKey`) |
+| Entra token | Acquired on demand by `DefaultAzureCredential`, cached in process | App → Voice Live |
+| Foundry Local | No auth; bind to loopback or a firewalled LAN interface | Local LLM |
+| Disconnected license file | `/license` bind mount on the host | Speech containers (offline) |
 
 ## 3. Verify-at-deployment-time CLI snippets
 
-Run these on the day of deployment to catch any drift from this document.
+Run these on the day you deploy (after the tenant-explicit sign-in in [03 — Deployment § Phase 0](./03-deployment.md#phase-0--authenticate-to-the-right-tenant)).
 
-### 3.1 Confirm your subscription supports the Foundry resource kind
+<details><summary><b>Show the verification commands</b></summary>
 
 ```pwsh
+# 3.1 The subscription can create Foundry (CognitiveServices) accounts in the region
 az provider show --namespace Microsoft.CognitiveServices `
-    --query "resourceTypes[?resourceType=='accounts'].locations" -o tsv `
-    | Select-String -Pattern "<your-region>"
-```
+    --query "resourceTypes[?resourceType=='accounts'].locations" -o tsv | Select-String -Pattern "East US 2"
 
-### 3.2 Confirm the model is available in your region
-
-```pwsh
-# Replace with your target region and the Voice Live model you plan to use
+# 3.2 The model is offered in the region (Voice Live built-ins are listed on the regions page;
+#     this command shows deployable versions for BYOM)
 $region = "eastus2"
-$model  = "gpt-realtime"   # or gpt-realtime-2, gpt-realtime-1.5, gpt-realtime-mini
-
+$model  = "gpt-realtime-2.1"
 az cognitiveservices model list --location $region `
-    --query "[?model.name=='$model' || contains(model.name, '$model')].{name:model.name, version:model.version, format:model.format}" `
-    -o table
-```
+    --query "[?contains(model.name, '$model')].{name:model.name, version:model.version, format:model.format}" -o table
 
-If the model isn't returned, pick a different region from [§1.3](#13-regional-availability-matrix) or pick a different model from [`hybrid/model-selection.md`](./hybrid/model-selection.md).
-
-### 3.3 Confirm container images are pullable (hybrid only)
-
-```bash
+# 3.3 Hybrid only: container images are pullable
 docker pull mcr.microsoft.com/azure-cognitive-services/speechservices/speech-to-text:latest
 docker pull mcr.microsoft.com/azure-cognitive-services/speechservices/neural-text-to-speech:latest
-```
 
-If a pull fails, your firewall is blocking `mcr.microsoft.com`.
-
-### 3.4 Confirm Foundry Local can serve your chosen model (hybrid only)
-
-```pwsh
+# 3.4 Hybrid only: Foundry Local can serve your model
 foundry --version
-foundry model list                       # browse the catalog
+foundry model list
 foundry model download qwen2.5-7b-instruct
 foundry service start
 curl.exe -sS http://localhost:5273/v1/models
 ```
 
----
+</details>
 
 ## 4. Naming conventions
 
-| Resource | Convention | Example |
+| Item | Convention (Bicep default) | Example |
 |---|---|---|
-| Resource group | `rg-aitts-<env>-<region>` | `rg-aitts-dev-eastus2` |
-| Foundry resource | `aif-aitts-<env>-<region>` (≤ 64 chars, must be globally unique) | `aif-aitts-dev-eastus2-001` |
-| Edge host (DNS) | `aitts-edge-<site>-01` | `aitts-edge-seattle-01` |
-| Hybrid voice tag | NTTS image tag `<ver>-amd64-<locale>-<voice>` ↔ env `LOCAL_TTS_VOICE` `<Locale>-<VoiceName>Neural` | tag `3.11.0-amd64-en-us-jennyneural` ↔ `LOCAL_TTS_VOICE=en-US-JennyNeural` |
-
----
+| Resource group | `rg-<prefix>-<env>-<region>` | `rg-avla-dev-eastus2` |
+| Foundry resource | `aif-<prefix>-<env>-<region>-<6-char unique>` (globally unique, ≤ 64 chars) | `aif-avla-dev-eastus2-a1b2c3` |
+| azd environment | 2–32 lowercase letters, digits, hyphens | `voice-avatar-dev` |
+| Edge host (DNS) | `<prefix>-edge-<site>-01` | `avla-edge-site1-01` |
+| Hybrid voice | NTTS image tag `<ver>-amd64-<locale>-<voice>` ↔ `LOCAL_TTS_VOICE` | tag `…-en-us-jennyneural` ↔ `en-US-JennyNeural` |
 
 ## 5. Pre-flight checklist
 
-Verify every box before starting [`03-deployment.md`](./03-deployment.md).
+> [!IMPORTANT]
+> Every box below must be ticked before [03 — Deployment](./03-deployment.md). The first one is the one people skip: confirm **both** CLIs point at the intended tenant and subscription.
 
-### Always (cloud path)
+**Always (cloud path)**
 
-- [ ] `az login` succeeds and `az account show` returns the correct subscription.
-- [ ] You have Contributor + User Access Administrator on the target RG (or subscription).
-- [ ] Region chosen from [§1.3](#13-regional-availability-matrix) supports every feature you plan to enable.
-- [ ] `python --version` ≥ 3.10, `az --version` ≥ 2.60, `git --version`, `pwsh --version` ≥ 7.
+- [ ] `az account show` and `azd auth login --check-status` point at the intended tenant + subscription.
+- [ ] You hold Owner, or Contributor + User Access Administrator, on the target scope.
+- [ ] The region is Tier 1 for your feature set ([§1.3](#13-regional-availability-matrix)).
+- [ ] `python --version` ≥ 3.10, `az --version` ≥ 2.60, `azd version`, `git --version`, `pwsh --version` ≥ 7.
 - [ ] Browser is Chrome 120+ or Edge 120+.
-- [ ] Voice Live model availability verified in your region (§3.2).
 
-### Hybrid (additional)
+**Hybrid (additional)**
 
-- [ ] Edge host meets at least the minimum spec from §2.1.
-- [ ] Outbound HTTPS open to all URLs in §2.3.
-- [ ] `docker info` and `docker compose version` succeed on the edge host.
-- [ ] Foundry resource key on hand (from portal → Keys and Endpoint).
-- [ ] Container images pullable (§3.3).
-- [ ] Foundry Local installed (Windows / macOS) **or** vLLM available (Linux substitute).
-- [ ] If offline operation is the goal: disconnected approval email + commitment-tier SKU.
+- [ ] The edge host meets the §2.1 minimum and `docker info` / `docker compose version` succeed.
+- [ ] Outbound HTTPS is open to the §2.3 endpoints.
+- [ ] Container images are pullable and Foundry Local serves the model (§3).
+- [ ] The Foundry resource key is in a site secret store.
+- [ ] Offline sites only: disconnected approval + commitment tier in place.
 
 ---
 
-*Last updated: 2026-06-04*
+Next: [03 — Deployment](./03-deployment.md) →
+
+*Last updated: 2026-10-07*

@@ -31,16 +31,29 @@
     .env.example) with AZURE_AI_ENDPOINT and confirm the value.
 
 .PARAMETER SkipLogin
-    Skip the `az account show` sanity check (useful in CI where you've
-    already authenticated via federated credentials).
+    Skip the tenant/subscription check (useful in CI where you've already
+    authenticated via federated credentials scoped to the right tenant).
+
+.PARAMETER TenantId
+    Entra tenant ID the deployment must target. Required unless -SkipLogin.
+    The script stops if `az account show` reports a different tenant.
+
+.PARAMETER SubscriptionId
+    Subscription ID the deployment must target. Required unless -SkipLogin.
+    Passed explicitly to `az deployment sub` so the ambient default is never used.
 
 .EXAMPLE
-    pwsh .\infra\deploy.ps1 -WhatIf
+    pwsh .\infra\deploy.ps1 -TenantId <tenant-guid> -SubscriptionId <sub-guid> -WhatIf
     # Dry-run with the committed parameters file.
 
 .EXAMPLE
-    pwsh .\infra\deploy.ps1 -ParametersFile .\infra\main.parameters.local.json -WriteEnv -Verify
+    pwsh .\infra\deploy.ps1 -TenantId <tenant-guid> -SubscriptionId <sub-guid> `
+        -ParametersFile .\infra\main.parameters.local.json -WriteEnv -Verify
     # Real deploy using your private params, write the endpoint to .env, smoke-test.
+
+.NOTES
+    `azd up` (azure.yaml + infra/azd.bicep) deploys the same Bicep; both paths
+    share infra/hooks/common.ps1 for validation and output writing.
 #>
 
 [CmdletBinding()]
@@ -48,6 +61,8 @@ param(
     [string] $ParametersFile = (Join-Path $PSScriptRoot 'main.parameters.json'),
     [string] $Location,
     [string] $DeploymentName = "voice-live-avatar-$(Get-Date -Format yyyyMMdd-HHmmss)",
+    [string] $TenantId,
+    [string] $SubscriptionId,
     [switch] $WhatIf,
     [switch] $Verify,
     [switch] $WriteEnv,
@@ -55,6 +70,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'hooks\common.ps1')
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $bicepFile = Join-Path $PSScriptRoot 'main.bicep'
 
@@ -65,14 +81,12 @@ if (-not (Test-Path $ParametersFile)) {
     throw "Parameters file not found at $ParametersFile. Copy infra/main.parameters.json to infra/main.parameters.local.json and edit it."
 }
 
-# ── 1. Sanity: az logged in ─────────────────────────────────────────────────
+# ── 1. Sanity: az signed in to the intended tenant + subscription ───────────
 if (-not $SkipLogin) {
-    try {
-        $account = az account show -o json | ConvertFrom-Json
-        Write-Host "Using subscription: $($account.name) ($($account.id))" -ForegroundColor Cyan
-    } catch {
-        throw "az is not authenticated. Run 'az login' first, or pass -SkipLogin in CI."
+    if (-not $TenantId -or -not $SubscriptionId) {
+        throw "Pass -TenantId and -SubscriptionId (the ambient az account is never trusted). Sign in first with: az login --tenant <tenant-id> ; az account set --subscription <subscription-id>"
     }
+    Assert-AzContextMatches -TenantId $TenantId -SubscriptionId $SubscriptionId
 }
 
 # ── 2. Resolve location ──────────────────────────────────────────────────────
@@ -83,6 +97,7 @@ if (-not $Location) {
 if (-not $Location) {
     throw "Location not provided and not present in parameters file."
 }
+Assert-Region -Location $Location
 Write-Host "Region: $Location" -ForegroundColor Cyan
 
 # ── 3. WhatIf or deploy ─────────────────────────────────────────────────────
@@ -92,6 +107,9 @@ $commonArgs = @(
     '--parameters', "@$ParametersFile"
     '--name', $DeploymentName
 )
+if ($SubscriptionId) {
+    $commonArgs += @('--subscription', $SubscriptionId)
+}
 
 if ($WhatIf) {
     Write-Host "`nRunning what-if (no resources will be deployed)..." -ForegroundColor Yellow
@@ -99,7 +117,7 @@ if ($WhatIf) {
     return
 }
 
-Write-Host "`nDeploying to subscription $($account.id)..." -ForegroundColor Green
+Write-Host "`nDeploying to subscription $SubscriptionId..." -ForegroundColor Green
 $result = az deployment sub create @commonArgs -o json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) {
     throw "Deployment failed (exit code $LASTEXITCODE)."
@@ -122,26 +140,24 @@ Write-Host "  Cog Services URL : $cogEndpoint"
 Write-Host "  System-MI PID    : $miPrincipal"
 Write-Host "  Role assignments : $rbacCount"
 
+Write-DemoIds -Values ([ordered]@{
+        generatedBy               = 'infra/deploy.ps1'
+        tenantId                  = $TenantId
+        subscriptionId            = $SubscriptionId
+        location                  = $Location
+        resourceGroup             = $rgName
+        foundryName               = $foundryName
+        azureAiEndpoint           = $endpoint
+        cognitiveServicesEndpoint = $cogEndpoint
+        foundryPrincipalId        = $miPrincipal
+        roleAssignmentsCreated    = $rbacCount
+        voiceLiveModel            = 'gpt-realtime-2.1'
+        azdEnvironment            = ''
+    })
+
 # ── 5. Optional .env update ─────────────────────────────────────────────────
 if ($WriteEnv) {
-    $envPath = Join-Path $repoRoot '.env'
-    $examplePath = Join-Path $repoRoot '.env.example'
-    if (-not (Test-Path $envPath)) {
-        if (Test-Path $examplePath) {
-            Copy-Item $examplePath $envPath
-            Write-Host "Seeded .env from .env.example" -ForegroundColor Cyan
-        } else {
-            New-Item -ItemType File -Path $envPath | Out-Null
-        }
-    }
-    $envLines = Get-Content $envPath
-    if ($envLines -match '^AZURE_AI_ENDPOINT=') {
-        $envLines = $envLines -replace '^AZURE_AI_ENDPOINT=.*', "AZURE_AI_ENDPOINT=$endpoint"
-    } else {
-        $envLines += "AZURE_AI_ENDPOINT=$endpoint"
-    }
-    Set-Content -Path $envPath -Value $envLines
-    Write-Host "Wrote AZURE_AI_ENDPOINT to $envPath" -ForegroundColor Cyan
+    Set-DotEnvValue -Path (Join-Path $repoRoot '.env') -Key 'AZURE_AI_ENDPOINT' -Value $endpoint
 }
 
 # ── 6. Optional smoke verification ──────────────────────────────────────────

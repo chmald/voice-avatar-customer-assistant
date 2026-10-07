@@ -1,0 +1,32 @@
+# Static validation for the pattern: never signs in to Azure, never deploys.
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test tooling
+        run: pip install -r scripts/requirements.txt
+      - name: Doc visuals, configuration guard, azd template guards
+        run: python -m pytest
+      - name: Doc visual lint (strict)
+        run: python scripts/lint_doc_visuals.py --strict --quiet
+      - name: Diagram PNGs present and fresh
+        run: python scripts/export_diagrams.py docs/assets --check || echo "::warning::git checkout resets mtimes; re-export locally if a .drawio changed"
+      - name: Compile Bicep
+        run: |
+          az bicep install
+          az bicep build --file infra/azd.bicep --stdout > /dev/null
+          az bicep build --file infra/main.bicep --stdout > /dev/null

@@ -1,0 +1,3 @@
+# Tooling for scripts/ and tests/. The scripts themselves use only the Python
+# standard library; draw.io desktop is needed only to re-export diagram PNGs.
+pytest>=8.0

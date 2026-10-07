@@ -115,7 +115,7 @@ Audio never leaves the edge host. Outbound network traffic during a session: **z
 > **No.** Microsoft does not publish the real-time TTS Avatar as a container or SDK. Avatar = Azure-only. Local mode is voice-only by design.
 
 > *Can we run `gpt-realtime` on-prem?*
-> **No.** `gpt-realtime`, `gpt-realtime-2`, `gpt-realtime-1.5` are Azure-only models. On-prem we substitute a chat-completion LLM via Foundry Local. See [`model-selection.md`](./model-selection.md).
+> **No.** `gpt-realtime-2.1`, `gpt-realtime-1.5`, `gpt-realtime` and their `-mini` variants are Azure-only models. On-prem we substitute a chat-completion LLM via Foundry Local. See [`model-selection.md`](./model-selection.md).
 
 > *Do HD/Dragon voices work on-prem?*
 > **No.** Dragon HD voices are not in the Speech container catalog. The local NTTS container ships standard neural voices only.
@@ -128,4 +128,4 @@ Audio never leaves the edge host. Outbound network traffic during a session: **z
 
 ---
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-10-07*

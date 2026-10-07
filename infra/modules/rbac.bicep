@@ -1,6 +1,7 @@
 // =============================================================================
 // RBAC — grant a principal the two roles the app needs at runtime on a
-// specific Foundry resource: Cognitive Services User + Azure AI User.
+// specific Foundry resource: Cognitive Services User + Foundry User
+// (Foundry User was previously named "Azure AI User"; the role ID is unchanged).
 //
 // The role IDs are the well-known built-in role definition GUIDs from
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
@@ -27,7 +28,7 @@ param principalType string = 'User'
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
 var roleIds = {
   cognitiveServicesUser: 'a97b65f3-24c7-4388-baec-2e87135dc908'   // Cognitive Services User
-  azureAiUser:           '53ca6127-db72-4b80-b1b0-d745d6d5456d'   // Azure AI User
+  azureAiUser:           '53ca6127-db72-4b80-b1b0-d745d6d5456d'   // Foundry User (formerly Azure AI User)
 }
 
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {

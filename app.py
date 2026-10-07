@@ -8,7 +8,7 @@ Bridges browser WebSocket ↔ a session handler. Two handlers exist:
     used as a fallback when the cloud endpoint is unreachable.
 
 Authentication: DefaultAzureCredential (Azure CLI / managed identity).
-Required roles: Cognitive Services User + Azure AI User.
+Required roles: Cognitive Services User + Foundry User (formerly named Azure AI User).
 """
 
 import asyncio

@@ -1,0 +1,22 @@
+{
+  "_template": true,
+  "_note": "Human reference + local dry-runs only. The populated copy is demo-ids.local.json (gitignored), written by the azd postprovision hook or infra/deploy.ps1. Nothing reads this file at runtime: the app reads .env / process environment (see docs/07-configuration-reference.md). Never commit real tenant, subscription or object IDs.",
+  "generatedBy": "azd postprovision | infra/deploy.ps1",
+  "generatedAt": "<ISO-8601 timestamp>",
+  "azure": {
+    "tenantId": "<tenant-guid>",
+    "subscriptionId": "<subscription-guid>",
+    "location": "eastus2",
+    "resourceGroup": "rg-avla-dev-eastus2",
+    "foundryName": "aif-avla-dev-eastus2-<unique>",
+    "azureAiEndpoint": "https://aif-avla-dev-eastus2-<unique>.services.ai.azure.com",
+    "cognitiveServicesEndpoint": "https://aif-avla-dev-eastus2-<unique>.cognitiveservices.azure.com/",
+    "foundryPrincipalId": "<system-assigned-identity-object-id>",
+    "roleAssignmentsCreated": 1
+  },
+  "_workload_note": "The single workload-specific block. Retarget the assistant (persona, greeting, tools) through SYSTEM_PROMPT in config.py and the .env settings listed in docs/07-configuration-reference.md; nothing here is domain-specific by default.",
+  "workload": {
+    "voiceLiveModel": "gpt-realtime-2.1",
+    "azdEnvironment": "<azd-env-name>"
+  }
+}

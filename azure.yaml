@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+# One-command provisioning for the Azure surface of this demo (resource group,
+# Microsoft Foundry resource, runtime RBAC). Infra-only: the FastAPI app runs on
+# your workstation (python app.py) against the provisioned endpoint, so there is
+# no `services:` block. Same Bicep as infra/deploy.ps1 — see docs/03-deployment.md.
+name: ai-voice-live-avatar
+metadata:
+  template: ai-voice-live-avatar@1.1.0
+infra:
+  provider: bicep
+  path: infra
+  module: azd
+hooks:
+  preprovision:
+    shell: pwsh
+    run: ./infra/hooks/preprovision.ps1
+    interactive: true
+    continueOnError: false
+  postprovision:
+    shell: pwsh
+    run: ./infra/hooks/postprovision.ps1
+    interactive: true
+    continueOnError: false

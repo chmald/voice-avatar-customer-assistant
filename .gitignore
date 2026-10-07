@@ -17,6 +17,14 @@ dist/
 *.p12
 secrets/
 .azure/
+demo-ids.local.json
+demo-ids.json
+*.local.json
+.sp-secret.json
+secrets.json
+
+# Test / tooling caches
+.pytest_cache/
 
 # IaC — keep templates, ignore populated copies and build artifacts
 infra/.build/

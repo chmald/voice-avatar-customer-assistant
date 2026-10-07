@@ -1,70 +1,83 @@
-# 08 — Model selection
+# Model selection
 
 > Reference for picking the **right LLM in each mode**. Cloud mode runs against
-> Azure's `gpt-realtime` family; local mode runs against a chat-completion
-> model served by Foundry Local. There is no on-prem equivalent of
-> `gpt-realtime` — read [§3](#3-why-there-is-no-on-prem-gpt-realtime) for the
-> reason.
+> a Voice Live built-in model (default `gpt-realtime-2.1`) or your own deployment
+> via BYOM; local mode runs against a chat-completion model served by Foundry
+> Local. There is no on-prem equivalent of the `gpt-realtime` family — read
+> [§3](#3-why-there-is-no-on-prem-gpt-realtime) for the reason.
 
 ---
 
 ## 1. Cloud — Azure Voice Live models
 
-Voice Live API exposes a built-in family of GPT Realtime models. The
+Voice Live API exposes a built-in, fully managed set of models. The
 deployment side is **zero-config**: pick a name in `VOICE_LIVE_MODEL` and
-Voice Live serves it directly (no Foundry deployment required for the built-in
-list).
+Voice Live serves it directly (no Foundry deployment, no capacity planning).
+Availability depends on the **resource region**, and the inference scope
+(global, data zone, regional) depends on the model name.
 
-| Model | `VOICE_LIVE_MODEL` value | Status | Use when |
+| Model | `VOICE_LIVE_MODEL` value | Status (Learn, 2026-10-07) | Use when |
 |---|---|---|---|
-| **GPT Realtime** | `gpt-realtime` | GA — default | Stable production deployments. The current GA model. |
-| **GPT Realtime 1.5** | `gpt-realtime-1.5` | GA | When you want better instruction-following and a longer context than the original `gpt-realtime`, with no preview risk. |
-| **GPT Realtime 2** | `gpt-realtime-2` | Preview (as of Q4 2026 — verify the current state on Microsoft Learn) | Latest model with longest context and configurable reasoning effort. Use for new builds where the preview status is acceptable. |
-| GPT Realtime mini | `gpt-realtime-mini` | GA | Cost-sensitive voice-agent workloads where the smaller model's quality is sufficient. |
-| GPT-4o Realtime (preview) | `gpt-4o-realtime-preview` | Preview (legacy) | Compat with apps written before the `gpt-realtime` family graduated. New builds should prefer `gpt-realtime[-1.5/-2]`. |
-| GPT-4o mini Realtime (preview) | `gpt-4o-mini-realtime-preview` | Preview (legacy) | Same caveat as above. |
+| **GPT Realtime 2.1** | `gpt-realtime-2.1` | GA (version 2026-07-07, retires 2027-06-25) — **default** | New builds. Pro pricing tier; improved silence and noise handling over GPT Realtime 2. |
+| GPT Realtime 2.1 data zone / regional | `gpt-realtime-2.1-datazone`, `gpt-realtime-2.1-regional` | GA | Prompts and responses must stay in the resource's data zone or region. |
+| GPT Realtime 2.1 mini | `gpt-realtime-2.1-mini` | GA | Cost-sensitive workloads (Standard pricing tier). |
+| **GPT Realtime 1.5** | `gpt-realtime-1.5` (and `-datazone`) | GA (retires 2027-08-24) | A stable alternative to the 2.x series. |
+| GPT Realtime | `gpt-realtime` (and `-datazone`, `-regional`) | GA — the 2025-08-28 version **retires 2027-03-02** | Existing apps only; plan the move to `gpt-realtime-2.1`. Not offered in `eastus` or `westeurope`. |
+| GPT Realtime mini | `gpt-realtime-mini` | GA | Cost-optimized (Standard tier). |
+| Cascaded models | `gpt-4.1`, `gpt-4.1-mini`, `gpt-5.x`, `gpt-4o`, `phi4-mm-realtime` (preview), … | Varies | Speech in / out through Azure speech to text + text to speech; also the only option in some regions (for example `westeurope`). |
 
-> **Authoritative source:**
-> [Voice Live API overview — Generative AI models](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
-> and [GPT Realtime 2 overview](https://learn.microsoft.com/azure/foundry/openai/concepts/realtime-2).
-> Microsoft updates the supported model list independently of this repo — verify
-> the model is offered in your Foundry resource's region before deploying.
+> **Removed in v1.1.0:** `gpt-realtime-2` (preview, superseded by `gpt-realtime-2.1`),
+> `gpt-4o-realtime-preview` and `gpt-4o-mini-realtime-preview` no longer appear in
+> the Voice Live model list.
+
+> **Authoritative sources:**
+> [Voice Live overview — supported models](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#supported-models-and-regions),
+> [Voice Live region support](https://learn.microsoft.com/azure/ai-services/speech-service/regions?tabs=voice-live),
+> [GPT Realtime 2.x](https://learn.microsoft.com/azure/foundry/openai/concepts/realtime-2) and the
+> [model retirement schedule](https://learn.microsoft.com/azure/foundry/openai/concepts/model-retirement-schedule).
+> Microsoft updates the list independently of this repo — re-check before every engagement.
 
 ### Default in this repo
 
 ```env
 # .env / .env.example
-VOICE_LIVE_MODEL=gpt-realtime
+VOICE_LIVE_MODEL=gpt-realtime-2.1
 ```
 
 To swap models, change a single line and restart the app:
 
 ```env
-VOICE_LIVE_MODEL=gpt-realtime-2      # preview, more capable
+VOICE_LIVE_MODEL=gpt-realtime-2.1-mini   # GA, Standard tier, cheaper
 # or
-VOICE_LIVE_MODEL=gpt-realtime-1.5    # GA, longer context than gpt-realtime
+VOICE_LIVE_MODEL=gpt-realtime-1.5        # GA, previous series
 ```
 
 No code change required. No Foundry deployment work required for the built-in list.
 
 ### When you want a model that isn't built-in — BYOM
 
-If you need a non-`gpt-realtime` model (e.g. a tuned GPT-5 chat-completion
-deployment, model router, or Anthropic Claude on Foundry), use the existing
-BYOM plumbing (already wired into `voice_handler.py`):
+If you need a model Voice Live doesn't pre-deploy (a fine-tuned realtime
+deployment, a PTU deployment, `gpt-5.5` / `gpt-5.4-mini` / `gpt-5.4-nano`,
+a model router, Grok, or Anthropic Claude on Foundry), use the BYOM plumbing
+(already wired into `session_handlers/cloud.py`):
 
 | BYOM profile | When | What `VOICE_BYOM_MODEL` is |
 |---|---|---|
-| `byom-azure-openai-realtime` | You created a private `gpt-realtime`, `gpt-realtime-2`, or `gpt-realtime-1.5` deployment in your own Foundry resource (e.g. for fine-tuned audio voice, dedicated TPM quota) | The deployment NAME you set in the Foundry portal |
-| `byom-azure-openai-chat-completion` | You want a chat-completion model (gpt-5, gpt-4.1, model router) — Voice Live will glue STT/TTS around it | The deployment NAME you set in the Foundry portal |
-| `byom-foundry-anthropic-messages` | You want Claude on Foundry (preview) | The deployment NAME you set in the Foundry portal |
+| `byom-azure-openai-realtime` | You created a private `gpt-realtime-2.1`, `gpt-realtime-1.5` or `gpt-realtime-mini` deployment in your own Foundry resource (e.g. dedicated TPM quota or PTU) | The deployment NAME you set in the Foundry portal |
+| `byom-azure-openai-chat-completion` | You want a chat-completion model (`gpt-5.4`, `gpt-5.5`, Grok, model router) — Voice Live will glue STT/TTS around it | The deployment NAME you set in the Foundry portal |
+| `byom-foundry-anthropic-messages` | You want Claude on Foundry (preview), e.g. `claude-sonnet-4.6` | The deployment NAME you set in the Foundry portal |
 
-Example `.env` for BYOM with one of the realtime variants:
+With Entra ID auth, the chat-completion and Anthropic profiles (and any
+`VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE`) need the Voice Live Foundry resource's
+system-assigned identity to hold **Foundry User** on the model's resource
+([BYOM authentication setup](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-bring-your-own-model)).
+
+Example `.env` for BYOM with a realtime deployment:
 
 ```env
 ENABLE_BYOM_MODE=true
 VOICE_BYOM_MODE=byom-azure-openai-realtime
-VOICE_BYOM_MODEL=my-gpt-realtime-2-prod        # your deployment name
+VOICE_BYOM_MODEL=my-gpt-realtime-21-prod       # your deployment name
 # Optional cross-resource:
 # VOICE_BYOM_FOUNDRY_RESOURCE_OVERRIDE=my-other-foundry
 ```
@@ -103,10 +116,11 @@ foundry service start
 foundry service status        # prints port, e.g. http://localhost:5273
 ```
 
-If you cannot install Foundry Local on the host OS (e.g. Linux servers where
-Foundry Local isn't yet officially supported), substitute **vLLM** or
-**llama.cpp's server** with `--api compat=openai` — the app only requires an
-OpenAI-compatible `/v1/chat/completions` endpoint. Example:
+Foundry Local supports Windows, macOS (Apple silicon) and Linux
+([What is Foundry Local](https://learn.microsoft.com/azure/foundry-local/what-is-foundry-local)).
+If you prefer another server — or need a model outside the Foundry Local catalog —
+substitute **vLLM** or **llama.cpp's server** (both expose an OpenAI-compatible API);
+the app only requires an OpenAI-compatible `/v1/chat/completions` endpoint. Example:
 
 ```bash
 pip install "vllm>=0.6"
@@ -142,7 +156,7 @@ experience.
 
 ## 4. Side-by-side parity table
 
-| Capability | Cloud (`gpt-realtime[-2/-1.5]`) | Local fallback (chat-completion LLM) |
+| Capability | Cloud (`gpt-realtime-2.1` / `-1.5` / `gpt-realtime`) | Local fallback (chat-completion LLM) |
 |---|---|---|
 | Speech-in / speech-out fused | ✅ | ❌ Re-built from STT + LLM + TTS |
 | Semantic VAD / turn detection | ✅ | ⚠️ Energy-based VAD |
@@ -160,7 +174,7 @@ experience.
 
 | Variable | Default | Where it's used |
 |---|---|---|
-| `VOICE_LIVE_MODEL` | `gpt-realtime` | Cloud Voice Live built-in model |
+| `VOICE_LIVE_MODEL` | `gpt-realtime-2.1` | Cloud Voice Live built-in model |
 | `VOICE_BYOM_MODE` | `byom-azure-openai-realtime` (only used when `ENABLE_BYOM_MODE=true`) | BYOM profile string |
 | `VOICE_BYOM_MODEL` | *(empty)* | Foundry deployment NAME for BYOM |
 | `LOCAL_LLM_MODEL` | `qwen2.5-7b-instruct` | Foundry Local model alias |
@@ -174,7 +188,7 @@ curl http://localhost:8000/api/hybrid/status
 ```
 
 The cloud model in use is logged at session start: look for
-`Connecting — endpoint=..., model=gpt-realtime[-2/-1.5]` in the app log.
+`Connecting — endpoint=..., model=gpt-realtime-2.1` in the app log.
 
 ---
 
@@ -182,11 +196,11 @@ The cloud model in use is logged at session start: look for
 
 | Goal | Action |
 |---|---|
-| Move from `gpt-realtime` → `gpt-realtime-2` for evaluation | Change `VOICE_LIVE_MODEL=gpt-realtime-2` on a single test host, run [`../04-testing.md`](../04-testing.md) F1–F2 and F10, roll out gradually. |
-| Use a fine-tuned `gpt-realtime` deployment | `ENABLE_BYOM_MODE=true`, `VOICE_BYOM_MODE=byom-azure-openai-realtime`, `VOICE_BYOM_MODEL=<your-deployment>`. |
+| Move an existing deployment from `gpt-realtime` → `gpt-realtime-2.1` (before the 2027-03-02 retirement) | Change `VOICE_LIVE_MODEL=gpt-realtime-2.1` on a single test host, run [`../04-testing.md`](../04-testing.md) F1–F2 and F10, roll out gradually. Check the region offers it first. |
+| Use your own realtime deployment (dedicated quota / PTU) | `ENABLE_BYOM_MODE=true`, `VOICE_BYOM_MODE=byom-azure-openai-realtime`, `VOICE_BYOM_MODEL=<your-deployment>`. |
 | Swap the local LLM to Phi-4 | `foundry model download phi-4`; restart Foundry Local; `LOCAL_LLM_MODEL=phi-4`; restart app. |
 | Pin to a specific `gpt-realtime-mini` snapshot | Use BYOM realtime profile and a deployment named for the dated snapshot (e.g. `gpt-realtime-mini-2025-12-15`). |
 
 ---
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-10-07*

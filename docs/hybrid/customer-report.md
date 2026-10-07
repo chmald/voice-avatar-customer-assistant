@@ -160,11 +160,11 @@ This section enumerates everything that needs to change to support **Approach A*
 
 | Resource | Action | Why |
 |---|---|---|
-| **Microsoft Foundry resource (existing)** | Keep. Confirm region supports Voice Live + Avatar + HD voices (e.g. `eastus2`, `westus2`, `westeurope`, `swedencentral`, `southeastasia`). | Used for cloud-primary path. |
+| **Microsoft Foundry resource (existing)** | Keep. Confirm the region supports Voice Live (with your model) + avatar + HD voices — Tier 1 as of 2026-10-07: `eastus2`, `westus2`, `swedencentral`, `southeastasia`, `centralindia`, `eastus` (see [`../02-prerequisites.md` §1.3](../02-prerequisites.md#13-regional-availability-matrix)). | Used for cloud-primary path. |
 | **Foundry resource — Speech "Standard S0" SKU** | Verify or add. The Speech container metering identity attaches here. | Required for both connected and disconnected container billing. |
 | **Disconnected Containers commitment tier** | Purchase via Microsoft account team after approval. | Mandatory pricing model for offline containers. |
 | **Access approval** | Submit the disconnected-containers request form (`aka.ms/csdisconnectedcontainers`). Allow ~10 business days. | Microsoft must approve disconnected use per Azure tenant. |
-| **RBAC role assignments** | `Cognitive Services User` + `Azure AI User` on the Foundry resource for the application's managed identity. Unchanged from today. | Already in use; reconfirm for any new sites. |
+| **RBAC role assignments** | `Cognitive Services User` + `Foundry User` (formerly named `Azure AI User`; same role ID) on the Foundry resource for the application's managed identity. Unchanged from today. | Already in use; reconfirm for any new sites. |
 | **Entra app / managed identity** | One per site if you want per-site auditability; one shared otherwise. | Token acquisition for container metering and for the cloud Voice Live path. |
 | **(Optional) Azure OpenAI deployment** *(also B)* | Add a `gpt-4.1` or `gpt-5` deployment in your Foundry resource as a "burst" target. | Used by Approach B; can be added later. |
 | **Azure Monitor / Log Analytics workspace** | Add a workspace and forward container + app logs (when online). | Operational visibility across both paths. |
@@ -177,7 +177,7 @@ This section enumerates everything that needs to change to support **Approach A*
 | **Container runtime** | Install Docker Engine or Podman + Compose. | Per Microsoft docs. |
 | **Speech STT container** | Pull `mcr.microsoft.com/azure-cognitive-services/speechservices/speech-to-text:latest`; run with `Eula=accept Billing=<endpoint> ApiKey=<key>` (connected) or `DownloadLicense=True` once, then offline-mode flags (disconnected). | ~4 vCPU, 4 GB RAM per replica. |
 | **Speech NTTS container(s)** | Pull `…/speechservices/neural-text-to-speech:<voice-tag>` for each fallback voice (recommend at least one US English and one regional voice matching the site). | ~6 vCPU, 12 GB RAM per voice. |
-| **Foundry Local** | Install via `winget`/`brew` on a workstation, or run the runtime in a container/binary on Linux. Pre-download chat model (e.g. `phi-4`, `qwen2.5-7b-instruct`, `mistral-7b-instruct`). | GPU strongly recommended; 16 GB+ VRAM for a 7B model at chat-quality latency. |
+| **Foundry Local** | Install via `winget` (Windows), `brew` (macOS) or the Linux package — Foundry Local supports Windows, macOS (Apple silicon) and Linux. Pre-download chat model (e.g. `phi-4`, `qwen2.5-7b-instruct`, `mistral-7b-instruct`). | GPU strongly recommended; 16 GB+ VRAM for a 7B model at chat-quality latency. |
 | **(Optional) Self-hosted Open-Meteo mirror** | If full offline weather lookups are required. | Negligible. |
 | **(Optional) Local Whisper container** *(also B)* | If you prefer Whisper over the Speech STT container. | GPU recommended. |
 | **Networking** | Outbound HTTPS to `*.cognitiveservices.azure.com`, `*.services.ai.azure.com`, `login.microsoftonline.com`, `mcr.microsoft.com` for image pulls and (in connected mode) metering. Inbound on the site LAN only. | Standard. |
@@ -224,17 +224,19 @@ These are the code-level updates that will go on the feature branch:
 
 ## 7. Suggested next step
 
+> **Status update (2026-10-07):** Approach A has since been implemented as an MVP on `feature/hybrid-local-fallback` (session-handler split, connectivity supervisor, local clients, mode badge, `docker-compose.local.yml`). See [`../06-hybrid-local-fallback.md`](../06-hybrid-local-fallback.md) for the as-built design. The original recommendation is kept below for provenance.
+
 If the customer agrees with Approach A, the implementation work will proceed on a new branch off `main`:
 
 - Branch: `feature/hybrid-local-fallback`
 - First milestones: (1) extract `SessionHandler` interface; (2) stub `LocalSessionHandler` returning canned audio; (3) connectivity supervisor; (4) wire real local STT/LLM/TTS; (5) UI mode indicator; (6) `docker-compose.local.yml` and README updates.
 
-No code changes are being made now — this branch will be created after the customer's decision is recorded.
+At the time this report was written no code changes had been made.
 
 ---
 
-*Document version 1.0 — prepared from a review of the codebase (`config.py`, `voice_handler.py`, `app.py`, `requirements.txt`) and Microsoft Learn documentation for Voice Live, Real-time TTS Avatar, Speech containers, Embedded Speech, and Foundry Local.*
+*Document version 1.1 — prepared from a review of the codebase (`config.py`, `voice_handler.py`, `app.py`, `requirements.txt`) and Microsoft Learn documentation for Voice Live, Real-time TTS Avatar, Speech containers, Embedded Speech, and Foundry Local. 1.1 refreshes the region list, the Foundry User role name and the Foundry Local platform list.*
 
 ---
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-10-07*
