@@ -1,4 +1,4 @@
-# Azure AI Voice Live API with Avatar
+# Voice Avatar Customer Assistant — Azure AI Voice Live API with Avatar
 
 <p align="center">
   <img src="./docs/assets/icons/speech.svg" width="40" alt="Voice Live API (Azure Speech)"/>&nbsp;
@@ -20,8 +20,9 @@
   <img src="./docs/assets/badges/static-only.svg" alt="v1.1.0 retrofit validated statically"/>
 </p>
 
-A reusable, pro-code reference for a **real-time AI voice assistant with a lifelike avatar**. One FastAPI process bridges the browser to the [Azure AI Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live), which fuses speech recognition, a realtime model (built-in `gpt-realtime-2.1` or your own via BYOM), neural / HD voices and the [real-time text to speech avatar](https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar) behind one WebSocket. Function calling, keyless Entra ID auth, a one-command `azd up` for the Azure side, and an **opt-in on-prem fallback** (Speech containers + Foundry Local) for sites with unreliable connectivity are included. It is written for architects, developers and presenters who need a working demo they can retarget with configuration only.
+A reusable, pro-code reference for a **real-time AI voice assistant with a lifelike avatar** — a customer-facing assistant that listens, answers and speaks through an on-screen avatar. One FastAPI process bridges the browser to the [Azure AI Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live), which fuses speech recognition, a realtime model (built-in `gpt-realtime-2.1` or your own via BYOM), neural / HD voices and the [real-time text to speech avatar](https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar) behind one WebSocket. Function calling, keyless Entra ID auth, a one-command `azd up` for the Azure side, and an **opt-in on-prem fallback** (Speech containers + Foundry Local) for sites with unreliable connectivity are included. It is written for architects, developers and presenters who need a working demo they can retarget with configuration only.
 
+> Formerly published as `ai-voice-live-avatar`. Old links redirect automatically. Sections that moved out of the old README are mapped in [Moved documents](#moved-documents).
 > [!NOTE]
 > **Start here.** First time? Follow [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md). Want the design first? Read [01 — Architecture](./docs/01-architecture.md). Version 1.1.0 retrofits the docs to the visual standard, adds the `azd` template and refreshes every Microsoft Learn claim (snapshot **2026-10-07**, see [`CHANGELOG.md`](./CHANGELOG.md)). The retrofit was validated statically; the live test matrix in [04 — Testing](./docs/04-testing.md) still has to be re-run on Azure.
 
@@ -171,6 +172,22 @@ python app.py                            # http://localhost:8000
 | [03 — Deployment](./docs/03-deployment.md) · [03b — Manual](./docs/03b-manual-deployment.md) | azd / script / portal paths with validation gates |
 | [04 — Testing](./docs/04-testing.md) · [05 — Troubleshooting](./docs/05-troubleshooting.md) | Test matrix + demo script · triage table and fixes |
 | [06 — Hybrid local fallback](./docs/06-hybrid-local-fallback.md) · [07 — Configuration](./docs/07-configuration-reference.md) | The on-prem path end to end · every setting in one page |
+
+## Moved documents
+
+Before v1.1.0 the whole guide lived in this README; v1.1.0 (2026-10-07) split it into `docs/`. If you hold a link to an old README section, use the new location below.
+
+| Old README section (before v1.1.0) | New location |
+|---|---|
+| `README.md#features` | [What this pattern delivers](#what-this-pattern-delivers) |
+| `README.md#architecture` | [docs/01-architecture.md](./docs/01-architecture.md) |
+| `README.md#prerequisites` | [docs/02-prerequisites.md](./docs/02-prerequisites.md) |
+| `README.md#support-matrix` (feature → requirement, region × feature, recommended deployments) | [docs/02-prerequisites.md § 1.3 Regional availability matrix](./docs/02-prerequisites.md#13-regional-availability-matrix) |
+| `README.md#configuration` (incl. BYOM and the weather tool) | [docs/07-configuration-reference.md](./docs/07-configuration-reference.md) |
+| `README.md#usage` | [docs/03-deployment.md](./docs/03-deployment.md) (Phase 3 — Run and validate) and [docs/04-testing.md](./docs/04-testing.md) |
+| `README.md#troubleshooting` | [docs/05-troubleshooting.md](./docs/05-troubleshooting.md) |
+
+`README.md#quick-start` and `README.md#license` still resolve in this README.
 
 ## Distribution
 
