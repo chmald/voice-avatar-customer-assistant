@@ -1,4 +1,4 @@
-"""azd template guards (demo-pattern hard-rule #17).
+"""azd template guards.
 
 Static only: never signs in and never calls Azure. The hook tests run
 preprovision.ps1 with deliberately bad input and expect a clean failure that

@@ -1,4 +1,4 @@
-# 07 — Azure vs on-prem responsibility matrix
+# Azure vs on-prem responsibility matrix
 
 > Engineering reference for **what stays integrated with Azure** vs **what
 > runs on the on-prem edge host** in each mode. Use this to brief stakeholders,

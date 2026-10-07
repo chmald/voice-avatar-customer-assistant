@@ -35,7 +35,7 @@ The test plan for the pattern: static checks that run anywhere (docs, configurat
 | Doc visual lint | Every doc meets the visual standard; links and anchors resolve | `python scripts/lint_doc_visuals.py --strict` (also `tests/test_doc_visuals.py`) | ![Static only](./assets/badges/static-only.svg) |
 | Configuration guard | Every azd variable, Bicep output, hook variable and app env var is documented in [07](./07-configuration-reference.md); `azd.bicep` passes every `main.bicep` parameter | `tests/test_configuration.py` | ![Static only](./assets/badges/static-only.svg) |
 | azd template guards | `azure.yaml` wiring, quoted substitutions, allow-list parity, hooks fail cleanly on bad input before any az call | `tests/test_azd_template.py` | ![Static only](./assets/badges/static-only.svg) |
-| Diagrams | `.drawio` files valid and rich; PNGs present and fresh | `validate-drawio.py --richness`, `python scripts/export_diagrams.py docs/assets --check` | ![Static only](./assets/badges/static-only.svg) |
+| Diagrams | `.drawio` sources have exported PNGs that are present and fresh | `python scripts/export_diagrams.py docs/assets --check` | ![Static only](./assets/badges/static-only.svg) |
 | IaC compile | `azd.bicep` → `main.bicep` → modules compile | `az bicep build --file infra/azd.bicep` | to run |
 | Cloud functional | F1–F10 below | Manual in the browser | to run — no recorded results |
 | Hybrid | H1–H10 + VAD below | Manual on an edge host | to run — §7 latencies were measured on v1.0, pass/fail was not recorded |

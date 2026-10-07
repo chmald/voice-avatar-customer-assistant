@@ -1,4 +1,4 @@
-"""Configuration guard (demo-pattern hard-rule #18).
+"""Configuration guard.
 
 Fails when a setting exists in code or IaC but is missing from
 docs/07-configuration-reference.md, or when the azd wrapper stops passing a

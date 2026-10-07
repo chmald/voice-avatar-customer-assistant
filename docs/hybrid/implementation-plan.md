@@ -2,7 +2,7 @@
 
 This document is the engineering plan for **Approach A** from [`customer-report.md`](./customer-report.md): keep Azure Voice Live + Avatar as the primary experience and add a **voice-only local-fallback mode** that the app uses when Azure is unreachable.
 
-Status: **in progress on `feature/hybrid-local-fallback`**.
+Status: **MVP implemented** (opt-in via `ENABLE_LOCAL_FALLBACK` / `FORCE_LOCAL_MODE`). Operator guide: [06 — Hybrid local fallback](../06-hybrid-local-fallback.md).
 
 ---
 
@@ -100,7 +100,7 @@ The browser does not gain any new sent messages — it still sends `start_sessio
 | M4 | Local handler | `LocalSessionHandler` emits the same browser protocol as cloud. End-to-end voice loop works on a developer box that has the containers running. |
 | M5 | Connectivity + routing | Supervisor wired into `app.py`; session start picks the right handler; degraded mode surfaces via `mode_notice`. |
 | M6 | UI | Mode badge, hidden avatar, banner. |
-| M7 | Compose + docs | `docker-compose.local.yml` works on a clean dev box; the standard 6 docs in `docs/` (per the demo-pattern convention) plus deep-dive supplements in `docs/hybrid/` are complete. |
+| M7 | Compose + docs | `docker-compose.local.yml` works on a clean dev box; the numbered guides in `docs/` plus deep-dive supplements in `docs/hybrid/` are complete. |
 | M8 | Smoke test | `python app.py` boots clean; `/api/health` ok; `/api/hybrid/status` returns supervisor state; cloud mode unchanged. |
 
 ---
