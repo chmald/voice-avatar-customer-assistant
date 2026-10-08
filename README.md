@@ -23,6 +23,10 @@
 A reusable, pro-code reference for a **real-time AI voice assistant with a lifelike avatar** — a customer-facing assistant that listens, answers and speaks through an on-screen avatar. One FastAPI process bridges the browser to the [Azure AI Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live), which fuses speech recognition, a realtime model (built-in `gpt-realtime-2.1` or your own via BYOM), neural / HD voices and the [real-time text to speech avatar](https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar) behind one WebSocket. Function calling, keyless Entra ID auth, a one-command `azd up` for the Azure side, and an **opt-in on-prem fallback** (Speech containers + Foundry Local) for sites with unreliable connectivity are included. It is written for architects, developers and presenters who need a working demo they can retarget with configuration only.
 
 > Formerly published as `ai-voice-live-avatar`. Old links redirect automatically. Sections that moved out of the old README are mapped in [Moved documents](#moved-documents).
+
+> [!WARNING]
+> **For testing and demonstration purposes only.** This is a personal reference demo provided "as is" under the [MIT License](LICENSE), without warranty or support. It is not an official Microsoft product or sample, has not been through a production security review, and is not intended for production use. Review, test, and harden it before reusing any part of it, deploy only to non-production subscriptions, and never use real customer or personal data.
+
 > [!NOTE]
 > **Start here.** First time? Follow [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md). Want the design first? Read [01 — Architecture](./docs/01-architecture.md). Version 1.1.0 retrofits the docs to the visual standard, adds the `azd` template and refreshes every Microsoft Learn claim (snapshot **2026-10-07**, see [`CHANGELOG.md`](./CHANGELOG.md)). The retrofit was validated statically; the live test matrix in [04 — Testing](./docs/04-testing.md) still has to be re-run on Azure.
 
@@ -214,14 +218,18 @@ This repo is designed to be pushed to GitHub or Azure DevOps as-is:
 | Model choice, BYOM profiles, local LLM substitutes | [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) |
 | Engagement-specific context (originating engagement, stakeholders) | Kept in the owner's private engagement notes, not in this repo |
 
+## Disclaimer
+
+> [!CAUTION]
+> This project is provided for testing, learning, and demonstration purposes only. It is not an official Microsoft product, sample, or service, and it is not supported under any Microsoft support program. Azure services, APIs, and pricing referenced here change over time — validate against current Microsoft Learn documentation before relying on any detail. Deploying it creates billable Azure resources; you are responsible for their cost, security, and cleanup.
+
 ## License
 
-| License | Scope |
-|---|---|
-| MIT | Code and docs in this repo. Microsoft product icons in `docs/assets/icons/` follow the [Azure architecture icon terms](./docs/assets/icons/README.md). |
+> [!NOTE]
+> Released under the [MIT License](LICENSE). Microsoft product icons in `docs/assets/icons/` follow the [Azure architecture icon terms](./docs/assets/icons/README.md).
 
 ---
 
 Next: [00 — Reproduce this demo](./docs/00-reproduce-this-demo.md) →
 
-*Last updated: 2026-10-07*
+*Last updated: 2026-10-08*
