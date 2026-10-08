@@ -1,9 +1,9 @@
 # Hybrid Localization Options for the Azure AI Voice Live API with Avatar Application
 
-**Audience:** Customer architecture / decision-maker
+**Audience:** Architects and decision-makers evaluating offline resilience
 **Source application:** `ai-voice-live-avatar` (FastAPI + Azure AI Voice Live API with Avatar)
 **Goal:** Reduce network dependency on cloud Azure services so that application instances on sites with poor or intermittent internet connectivity remain usable, **without** abandoning Azure as the primary platform.
-**Status:** Approach A is implemented as an opt-in MVP — see [06 — Hybrid local fallback](../06-hybrid-local-fallback.md). The analysis below is kept as the decision record.
+**Status:** Approach A is implemented as an opt-in MVP — see [06 — Hybrid local fallback](../06-hybrid-local-fallback.md). The analysis below is kept as the design rationale.
 
 ---
 
@@ -59,7 +59,7 @@ These remain Azure regardless of approach. Localization can only target the comp
 The application defaults to Azure Voice Live + avatar. A small connectivity supervisor watches the WebSocket. When the link to Azure is unreachable or degrades past a threshold (e.g. handshake fails, or > N seconds of dead time), the session is routed to a **local pipeline** running on the same on-prem box: Speech container STT → Foundry Local LLM → Speech container TTS, surfaced through the existing browser UI in voice-only mode. When connectivity returns, the next session reverts to cloud.
 
 **Pros**
-- Customer keeps the full avatar + HD-voice experience whenever the link is healthy.
+- Users keep the full avatar + HD-voice experience whenever the link is healthy.
 - Failure mode is *graceful*: instead of a "session error", the user gets a degraded but functional assistant.
 - Browser protocol does not change — the UI just hides the avatar pane when in local mode.
 - Engineering scope is bounded: one new `LocalSessionHandler` and a small supervisor.
@@ -88,12 +88,12 @@ The application defaults to Azure Voice Live + avatar. A small connectivity supe
 
 ### Approach B — Fully **local pipeline** with cloud-burst for hard questions
 
-The on-prem box becomes the *primary* path: STT container → Foundry Local LLM → NTTS container. Voice Live and the avatar are removed from the default UX. Optionally, the local orchestrator routes a subset of queries (or all queries when the link is good) to **Azure OpenAI** in the customer's Foundry resource for higher-quality reasoning, with a local fallback if the cloud call fails.
+The on-prem box becomes the *primary* path: STT container → Foundry Local LLM → NTTS container. Voice Live and the avatar are removed from the default UX. Optionally, the local orchestrator routes a subset of queries (or all queries when the link is good) to **Azure OpenAI** in your Foundry resource for higher-quality reasoning, with a local fallback if the cloud call fails.
 
 **Pros**
 - Survives full internet outages.
 - Lowest steady-state egress and predictable latency (STT/TTS on LAN).
-- Customer data for routine queries never leaves the site (useful for data-residency stories).
+- Data for routine queries never leaves the site (useful for data-residency stories).
 - No dependency on Voice Live region capacity.
 
 **Cons**
@@ -124,7 +124,7 @@ Keep the architecture exactly as it is today. Move only the *tools* and any retr
 - No approval process, no commitment-tier purchase.
 
 **Cons**
-- Does **not** address the customer's stated problem — if the internet drops, the application is still dead.
+- Does **not** address the core requirement — if the internet drops, the application is still dead.
 - Only modestly reduces round-trip latency on tool-using turns.
 
 **Stays in Azure**
@@ -148,7 +148,7 @@ Keep the architecture exactly as it is today. Move only the *tools* and any retr
 | On-prem hardware burden | Medium (idle, used on failover) | High (steady-state) | Low |
 | New Azure approvals needed | Disconnected containers + commitment tier | Same | None |
 | Predictable monthly Azure spend | Mixed (PAYG cloud + commitment tier) | Commitment tier dominant | Unchanged |
-| Customer data residency | Mostly cloud | Mostly on-prem | Cloud |
+| Data residency | Mostly cloud | Mostly on-prem | Cloud |
 
 ---
 
@@ -162,7 +162,7 @@ This section enumerates everything that needs to change to support **Approach A*
 |---|---|---|
 | **Microsoft Foundry resource (existing)** | Keep. Confirm the region supports Voice Live (with your model) + avatar + HD voices — Tier 1 as of 2026-10-07: `eastus2`, `westus2`, `swedencentral`, `southeastasia`, `centralindia`, `eastus` (see [`../02-prerequisites.md` §1.3](../02-prerequisites.md#13-regional-availability-matrix)). | Used for cloud-primary path. |
 | **Foundry resource — Speech "Standard S0" SKU** | Verify or add. The Speech container metering identity attaches here. | Required for both connected and disconnected container billing. |
-| **Disconnected Containers commitment tier** | Purchase via Microsoft account team after approval. | Mandatory pricing model for offline containers. |
+| **Disconnected Containers commitment tier** | Purchase through your Microsoft licensing contact after approval. | Mandatory pricing model for offline containers. |
 | **Access approval** | Submit the disconnected-containers request form (`aka.ms/csdisconnectedcontainers`). Allow ~10 business days. | Microsoft must approve disconnected use per Azure tenant. |
 | **RBAC role assignments** | `Cognitive Services User` + `Foundry User` (formerly named `Azure AI User`; same role ID) on the Foundry resource for the application's managed identity. Unchanged from today. | Already in use; reconfirm for any new sites. |
 | **Entra app / managed identity** | One per site if you want per-site auditability; one shared otherwise. | Token acquisition for container metering and for the cloud Voice Live path. |
@@ -206,15 +206,15 @@ These are the code-level updates that will go on the feature branch:
 - **Licensing renewal cadence:** Disconnected containers require periodic license refresh (every ~30 days for some SKUs). Establish a process to bring the license file back online and reinstall.
 - **Model lifecycle:** Pin Speech container tags (do **not** use `latest` in production); test version bumps in a lab site first. Same for the Foundry Local model version.
 - **Logging:** Decide whether transcripts in local mode are persisted on-prem (for support) or discarded (for privacy). The Voice Live path's logging is unchanged.
-- **Privacy posture changes:** In local mode, no audio leaves the site. Document this for the customer's compliance team.
+- **Privacy posture changes:** In local mode, no audio leaves the site. Document this for your compliance team.
 
 ---
 
-## 6. Decision checklist for the customer
+## 6. Decision checklist
 
 1. Is loss of the **avatar** acceptable during connectivity incidents? *(If yes → A or B viable. If no → only C, which doesn't actually solve the problem.)*
 2. Is loss of **HD/Dragon voice quality** acceptable in degraded mode? *(Required for A and B.)*
-3. Is the customer willing to go through the **disconnected containers approval process** and purchase a **commitment tier**? *(Required for A and B.)*
+3. Is your organization willing to go through the **disconnected containers approval process** and purchase a **commitment tier**? *(Required for A and B.)*
 4. Does the on-prem environment have **GPU capacity** for a 7B-class local LLM? *(Strongly recommended for A; required for B.)*
 5. Are **outbound HTTPS** to MCR, Entra, and the Foundry endpoint reliably available, even on slow links? *(Required for container licensing and Approach A's cloud-primary path.)*
 6. What **per-site latency budget** is acceptable for first audio when in local mode? *(Sets the GPU sizing.)*
@@ -226,7 +226,7 @@ These are the code-level updates that will go on the feature branch:
 
 > **Status update (2026-10-07):** Approach A has since been implemented as an MVP on `feature/hybrid-local-fallback` (session-handler split, connectivity supervisor, local clients, mode badge, `docker-compose.local.yml`). See [`../06-hybrid-local-fallback.md`](../06-hybrid-local-fallback.md) for the as-built design. The original recommendation is kept below for provenance.
 
-If the customer agrees with Approach A, the implementation work will proceed on a new branch off `main`:
+The original plan was to implement Approach A on a new branch off `main`:
 
 - Branch: `feature/hybrid-local-fallback`
 - First milestones: (1) extract `SessionHandler` interface; (2) stub `LocalSessionHandler` returning canned audio; (3) connectivity supervisor; (4) wire real local STT/LLM/TTS; (5) UI mode indicator; (6) `docker-compose.local.yml` and README updates.

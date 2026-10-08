@@ -184,7 +184,7 @@ Local mode uses energy-based VAD: the defaults suit a quiet office; tune the thr
 | 4:30 | Stop; walk through the comparison in [01](./01-architecture.md#cloud-mode-vs-local-fallback-mode) and [`hybrid/azure-vs-onprem-responsibility.md`](./hybrid/azure-vs-onprem-responsibility.md) | What stays in Azure vs. runs on-prem |
 
 > [!CAUTION]
-> Don't demo the Jeff avatar (retiring December 2026) or promise an on-prem avatar — none exists. Rehearse in the target region the day before: avatar capacity is limited in some regions.
+> Don't demo the Jeff avatar (retiring December 2026) or suggest an on-prem avatar is available — none exists. Rehearse in the target region the day before: avatar capacity is limited in some regions.
 
 ## 7. Performance baselines (informational)
 
@@ -204,7 +204,7 @@ Numbers are indicative: hardware (especially the GPU) and link latency dominate.
 ## Live validation
 
 > [!IMPORTANT]
-> v1.1.0 is a documentation, azd and configuration retrofit validated **statically**; no Azure resources were created. Before the next customer showing, run Phase 0 → Fast path → F1–F10 (and H1–H10 if you'll show the hybrid path) and record the results here, with secrets redacted, under `docs/assets/evidence/`.
+> v1.1.0 is a documentation, azd and configuration retrofit validated **statically**; no Azure resources were created. Before the next live demo, run Phase 0 → Fast path → F1–F10 (and H1–H10 if you'll show the hybrid path) and record the results here, with secrets redacted, under `docs/assets/evidence/`.
 
 | Run | Date | Region / model | F1–F10 | H1–H10 | Notes |
 |---|---|---|---|---|---|

@@ -212,7 +212,7 @@ This repo is designed to be pushed to GitHub or Azure DevOps as-is:
 | Decision area | Where it's recorded |
 |---|---|
 | Voice Live as the single cloud orchestrator; `gpt-realtime-2.1` default (moved from `gpt-realtime` in v1.1.0 because the 2025-08-28 version retires 2027-03-02) | [01 § Locked design decisions](./docs/01-architecture.md#locked-design-decisions) · [`CHANGELOG.md`](./CHANGELOG.md) |
-| Hybrid Approach A (cloud-primary + voice-only fallback) over B (local-first) and C (tools-only) | [`docs/hybrid/customer-report.md`](./docs/hybrid/customer-report.md) |
+| Hybrid Approach A (cloud-primary + voice-only fallback) over B (local-first) and C (tools-only) | [`docs/hybrid/options-analysis.md`](./docs/hybrid/options-analysis.md) |
 | MVP engineering scope and out-of-scope items | [`docs/hybrid/implementation-plan.md`](./docs/hybrid/implementation-plan.md) |
 | What must stay in Azure vs. what can move on-prem | [`docs/hybrid/azure-vs-onprem-responsibility.md`](./docs/hybrid/azure-vs-onprem-responsibility.md) |
 | Model choice, BYOM profiles, local LLM substitutes | [`docs/hybrid/model-selection.md`](./docs/hybrid/model-selection.md) |

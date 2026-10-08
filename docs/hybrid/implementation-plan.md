@@ -1,6 +1,6 @@
 # Hybrid local-fallback — implementation plan (MVP)
 
-This document is the engineering plan for **Approach A** from [`customer-report.md`](./customer-report.md): keep Azure Voice Live + Avatar as the primary experience and add a **voice-only local-fallback mode** that the app uses when Azure is unreachable.
+This document is the engineering plan for **Approach A** from [`options-analysis.md`](./options-analysis.md): keep Azure Voice Live + Avatar as the primary experience and add a **voice-only local-fallback mode** that the app uses when Azure is unreachable.
 
 Status: **MVP implemented** (opt-in via `ENABLE_LOCAL_FALLBACK` / `FORCE_LOCAL_MODE`). Operator guide: [06 — Hybrid local fallback](../06-hybrid-local-fallback.md).
 
@@ -21,14 +21,14 @@ In scope for this branch:
 5. Routing in `app.py`: at session start the supervisor's state plus the `ENABLE_LOCAL_FALLBACK` flag pick the handler. The browser gets a `mode` field on `session_started`.
 6. Browser UI changes: a **Cloud / Local** mode badge in the status bar; the avatar pane auto-hides in Local mode and shows a "voice-only fallback" notice.
 7. `docker-compose.local.yml` to bring up STT + NTTS for development.
-8. Documentation in `docs/` (top-level architecture, prerequisites, deployment, testing, troubleshooting) and `docs/hybrid/` (deep-dive supplements: customer report, this plan, Azure-vs-on-prem responsibility, model selection).
+8. Documentation in `docs/` (top-level architecture, prerequisites, deployment, testing, troubleshooting) and `docs/hybrid/` (deep-dive supplements: options analysis, this plan, Azure-vs-on-prem responsibility, model selection).
 
 **Explicitly out of scope for MVP** (tracked as follow-ups, not blockers for merge):
 
 - **Mid-session failover.** Switching handlers in the middle of an active session requires replaying conversation state and is not worth the complexity for v1. The supervisor only chooses at session start. If cloud drops mid-call, the session ends with `session_error` and the next session starts in Local mode automatically.
 - **Semantic VAD / `azure_deep_noise_suppression` / `server_echo_cancellation`** in Local mode. Energy-based VAD only. Document the quality gap.
 - **Streaming STT.** The Speech container *does* support streaming via the SDK's WebSocket protocol, but for the MVP we use the REST short-audio endpoint per utterance (60 s max). Streaming is a v2 enhancement.
-- **Avatar in Local mode.** Microsoft does not publish an on-prem avatar — see customer report §2. Local mode is voice-only by design.
+- **Avatar in Local mode.** Microsoft does not publish an on-prem avatar — see the options analysis §2. Local mode is voice-only by design.
 - **HD ("Dragon") voices in Local mode.** Not in the container catalog. Local mode picks a standard neural voice (default `en-US-JennyNeural`).
 - **Function calling (`get_weather`) in Local mode.** v1 ships without tool calling on the local path. Foundry Local supports it; we'll wire it in v2 once the base flow is stable.
 - **Bicep / IaC** for the on-prem stack. The on-prem layer is `docker-compose.local.yml` only. The Azure surface is unchanged from `main`.
@@ -68,7 +68,7 @@ ai-voice-live-avatar/
     ├── 04-testing.md                       # Functional + hybrid matrix + demo script
     ├── 05-troubleshooting.md               # Triage + per-symptom + escalation
     └── hybrid/
-        ├── customer-report.md              # Comparative report (Approaches A/B/C)
+        ├── options-analysis.md             # Comparative report (Approaches A/B/C)
         ├── implementation-plan.md          # This file — engineering plan + file map
         ├── azure-vs-onprem-responsibility.md  # Per-component split + egress rules
         └── model-selection.md              # gpt-realtime family + BYOM + Foundry Local
@@ -116,7 +116,7 @@ The browser does not gain any new sent messages — it still sends `start_sessio
 ## 6. Open questions to close before merge
 
 1. **Local LLM default model.** MVP defaults to `qwen2.5-7b-instruct` — confirm this is what we want to recommend, or substitute Phi-4.
-2. **Container licensing model.** For developer dev boxes we recommend connected metering. For deployed sites we assume the customer has obtained the disconnected approval.
+2. **Container licensing model.** For developer dev boxes we recommend connected metering. For deployed sites we assume the disconnected approval has already been obtained.
 3. **Audio format from NTTS container.** Container default is `riff-24khz-16bit-mono-pcm`. Our browser playback path expects raw 24 kHz PCM16 — the WAV header must be stripped (44 bytes) before sending. Document and implement.
 4. **VAD thresholds.** Energy-based VAD is environment-sensitive. Defaults work in a quiet office; expose `LOCAL_VAD_*` knobs.
 5. **Foundry Local discovery.** SDK can auto-resolve port (e.g. 5273) but the OpenAI-compatible endpoint is at `/v1`. We accept a full URL via `LOCAL_LLM_ENDPOINT` to avoid SDK coupling.

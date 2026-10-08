@@ -34,7 +34,7 @@ The design chose **Approach A — cloud-primary with an on-prem, voice-only fall
 | B — local-first, cloud burst | Voice-only, local quality | Voice-only | Use when data must stay on site for routine turns |
 | C — cloud Voice Live + local tools only | Full avatar | ❌ App is down | Doesn't solve the outage problem |
 
-Full analysis: [`hybrid/customer-report.md`](./hybrid/customer-report.md). Engineering plan: [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md).
+Full analysis: [`hybrid/options-analysis.md`](./hybrid/options-analysis.md). Engineering plan: [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md).
 
 ## Session routing
 

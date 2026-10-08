@@ -141,7 +141,7 @@ Audio never leaves the edge host. Outbound during a session: zero (connected con
 | 9 | Local VAD | Energy-based, in-process | Semantic VAD has no on-prem equivalent; tuneable via `LOCAL_VAD_*` |
 | 10 | Browser protocol | Additive changes only | Cloud and local share one protocol; the UI differs only by badge and avatar pane |
 
-See [`hybrid/customer-report.md`](./hybrid/customer-report.md) for the comparative analysis behind decisions 6–9 and [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md) for the engineering plan.
+See [`hybrid/options-analysis.md`](./hybrid/options-analysis.md) for the comparative analysis behind decisions 6–9 and [`hybrid/implementation-plan.md`](./hybrid/implementation-plan.md) for the engineering plan.
 
 ## Adapting this pattern to another scenario
 
