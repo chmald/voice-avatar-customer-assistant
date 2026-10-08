@@ -2,6 +2,12 @@
 
 All notable changes to this pattern. Dates are ISO `YYYY-MM-DD`.
 
+## Unreleased
+
+### Changed
+
+- Docs: rewrote for external audiences; removed internal terminology. `docs/hybrid/customer-report.md` is now `docs/hybrid/options-analysis.md` (links updated) and addresses the reader directly instead of a single customer; demo-script and testing wording no longer assumes a customer showing; the service-catalog diagram caption says "runs on your own hardware" (PNG re-exported); the `lint_doc_visuals.py` usage example uses `<repo-root>` instead of a profile path.
+
 ## 1.1.0 — 2026-10-07 — visual standard retrofit, azd template, Microsoft Learn refresh
 
 Branch: `docs/visual-standard-retrofit` (from `feature/hybrid-local-fallback`).
